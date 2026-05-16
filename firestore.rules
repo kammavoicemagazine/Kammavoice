@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Helper Functions ---
+    
+    // Check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Future-proof Admin check: Currently checks for any auth, 
+    // but can be updated to check for specific roles/claims.
+    function isAdmin() {
+      return isAuthenticated();
+    }
+
+    // --- Collections ---
+
+    // 1. Articles
+    match /articles/{articleId} {
+      // Public can read if published
+      allow read: if resource.data.isPublished == true || isAdmin();
+      // Only admins can write
+      allow write: if isAdmin();
+    }
+
+    // 2. Magazines
+    match /magazines/{magazineId} {
+      // Public can read if published
+      allow read: if resource.data.isPublished == true || isAdmin();
+      // Only admins can write
+      allow write: if isAdmin();
+      // Allow incrementing view count (specific field update)
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']);
+    }
+
+    // 3. Categories
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 4. Ads
+    match /ads/{adId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 5. Gallery
+    match /gallery/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // 6. Global Configuration / Metadata
+    match /config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Default deny for everything else
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

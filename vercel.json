@@ -1,0 +1,21 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/aggregate",
+      "schedule": "0 * * * *"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "^kammavoice\\.com$"
+        }
+      ],
+      "destination": "https://www.kammavoice.com/$1",
+      "permanent": true
+    }
+  ]
+}
