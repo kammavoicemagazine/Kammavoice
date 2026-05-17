@@ -129,6 +129,8 @@ export interface PageTranslationResult {
     ta: string;
   };
   confidenceScore: number;
+  executionTimeMs?: number;
+  estimatedTokens?: number;
 }
 
 /**
@@ -138,7 +140,8 @@ export interface PageTranslationResult {
 export async function processMagazinePageMultimodal(
   base64Image: string,
   pageNumber: number,
-  mimeType = "image/jpeg"
+  mimeType = "image/jpeg",
+  retries = 2
 ): Promise<PageTranslationResult | null> {
   if (!process.env.GEMINI_API_KEY) {
     console.warn("GEMINI_API_KEY not found. Skipping multimodal translation.");
@@ -163,53 +166,67 @@ export async function processMagazinePageMultimodal(
     Analyze the image and return the required JSON structure.
   `;
 
-  try {
-    const imagePart = {
-      inlineData: {
-        data: base64Image,
-        mimeType,
-      },
-    };
+  let lastError: any = null;
+  const imagePart = {
+    inlineData: {
+      data: base64Image,
+      mimeType,
+    },
+  };
 
-    const startTime = performance.now();
-    const result = await translationModel.generateContent([prompt, imagePart]);
-    const endTime = performance.now();
-    const executionTimeMs = Math.round(endTime - startTime);
-
-    const responseText = result.response.text();
-    
-    // Estimate tokens (approx 4 chars per token for text, plus image base64 overhead)
-    const estimatedPromptTokens = Math.round((prompt.length + (base64Image.length * 0.75)) / 4);
-    const estimatedCompletionTokens = Math.round(responseText.length / 4);
-
-    console.log(`[Gemini AI] Page ${pageNumber} Processed in ${executionTimeMs}ms | Est. Tokens: Prompt ~${estimatedPromptTokens}, Completion ~${estimatedCompletionTokens}`);
-
-    // Robust JSON parsing with sanitization
-    let parsed: PageTranslationResult;
+  for (let attempt = 1; attempt <= retries + 1; attempt++) {
     try {
-      parsed = JSON.parse(responseText);
-    } catch (parseErr) {
-      // Attempt fallback cleanup if AI returned markdown code block e.g. \`\`\`json ... \`\`\`
-      const cleaned = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-      parsed = JSON.parse(cleaned);
-    }
+      console.log(`[Gemini AI] Attempt ${attempt} for Page ${pageNumber}...`);
+      const startTime = performance.now();
+      const result = await translationModel.generateContent([prompt, imagePart]);
+      const endTime = performance.now();
+      const executionTimeMs = Math.round(endTime - startTime);
 
-    // Validate structure securely
-    if (typeof parsed?.originalText !== "string" || !parsed?.translations) {
-      throw new Error("Malformed AI JSON response structure");
-    }
+      const responseText = result.response.text();
+      
+      // Estimate tokens (approx 4 chars per token for text, plus image base64 overhead)
+      const estimatedPromptTokens = Math.round((prompt.length + (base64Image.length * 0.75)) / 4);
+      const estimatedCompletionTokens = Math.round(responseText.length / 4);
+      const totalEstimatedTokens = estimatedPromptTokens + estimatedCompletionTokens;
 
-    return {
-      originalText: parsed.originalText.trim(),
-      translations: {
-        en: (parsed.translations.en || "").trim(),
-        kn: (parsed.translations.kn || "").trim(),
-        ta: (parsed.translations.ta || "").trim(),
-      },
-      confidenceScore: typeof parsed.confidenceScore === "number" ? parsed.confidenceScore : 95,
-    };
-  } catch (error) {
-    console.error(`Gemini Multimodal Translation Error (Page ${pageNumber}):`, error);
-    return null;
+      console.log(`[Gemini AI] Page ${pageNumber} Processed in ${executionTimeMs}ms | Est. Tokens: Prompt ~${estimatedPromptTokens}, Completion ~${estimatedCompletionTokens}`);
+
+      // Robust JSON parsing with sanitization
+      let parsed: any;
+      try {
+        parsed = JSON.parse(responseText);
+      } catch (parseErr) {
+        // Attempt fallback cleanup if AI returned markdown code block e.g. \`\`\`json ... \`\`\`
+        const cleaned = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+        parsed = JSON.parse(cleaned);
+      }
+
+      // Validate structure securely
+      if (typeof parsed?.originalText !== "string" || !parsed?.translations) {
+        throw new Error("Malformed AI JSON response structure");
+      }
+
+      return {
+        originalText: parsed.originalText.trim(),
+        translations: {
+          en: (parsed.translations.en || "").trim(),
+          kn: (parsed.translations.kn || "").trim(),
+          ta: (parsed.translations.ta || "").trim(),
+        },
+        confidenceScore: typeof parsed.confidenceScore === "number" ? parsed.confidenceScore : 95,
+        executionTimeMs,
+        estimatedTokens: totalEstimatedTokens,
+      };
+    } catch (error: any) {
+      lastError = error;
+      console.warn(`[Gemini AI] Attempt ${attempt} failed for Page ${pageNumber}:`, error.message || error);
+      if (attempt <= retries) {
+        // Exponential backoff before retry
+        await new Promise(resolve => setTimeout(resolve, attempt * 1500));
+      }
+    }
   }
+
+  console.error(`Gemini Multimodal Translation Error (Page ${pageNumber}) after ${retries + 1} attempts:`, lastError);
+  return null;
 }

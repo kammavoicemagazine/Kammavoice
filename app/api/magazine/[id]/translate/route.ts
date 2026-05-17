@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { processMagazinePageMultimodal } from "@/lib/gemini";
 import { saveMagazinePageTranslation, updateMagazineTranslationStatus, getMagazinePageTranslation } from "@/lib/firestore";
 
+// Enforce maximum Vercel serverless execution time for AI multimodal processing
+export const maxDuration = 60;
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -56,6 +59,8 @@ export async function POST(
       originalText: aiResult.originalText,
       translations: aiResult.translations,
       confidenceScore: aiResult.confidenceScore,
+      executionTimeMs: aiResult.executionTimeMs,
+      estimatedTokens: aiResult.estimatedTokens,
     });
 
     // 4. Update parent magazine translation status metadata
