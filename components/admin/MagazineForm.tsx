@@ -63,15 +63,10 @@ export default function MagazineForm({ magazine, mode }: MagazineFormProps) {
     fetchTranslations();
   }, [mode, magazine]);
 
-  /** Helper to render a PDF page to base64 with dynamic scaling to prevent Vercel 4.5MB payload limits */
+  /** Helper to render a PDF page to base64 with 1.0 scale and 0.45 quality to minimize Vercel memory/payload size */
   const renderPdfPageToBase64 = async (pdfDoc: any, pageNum: number): Promise<string> => {
     const page = await pdfDoc.getPage(pageNum);
-    let viewport = page.getViewport({ scale: 1.0 });
-    
-    // Cap width at 1200px to ensure base64 JPEG stays well under Vercel's 4.5MB serverless limit
-    const maxDimension = 1200;
-    const scale = viewport.width > maxDimension ? maxDimension / viewport.width : 1.2;
-    viewport = page.getViewport({ scale });
+    const viewport = page.getViewport({ scale: 1.0 });
 
     const canvas = document.createElement("canvas");
     canvas.width = viewport.width;
@@ -79,34 +74,84 @@ export default function MagazineForm({ magazine, mode }: MagazineFormProps) {
     const ctx = canvas.getContext("2d")!;
     await page.render({ canvasContext: ctx, viewport }).promise;
     
-    // Use 0.78 JPEG quality for optimal balance between sharp OCR legibility and minimal payload size
-    const base64 = canvas.toDataURL("image/jpeg", 0.78);
+    // User requested: reduce render scale to 1.0, convert to compressed JPEG with 0.45 quality
+    const base64 = canvas.toDataURL("image/jpeg", 0.45);
     page.cleanup();
     return base64;
   };
 
-  /** Process translation for a single page */
+  /** Process translation for a single page across 4 distinct resumable stages */
   const processTranslationForPage = async (pageNum: number, pdfDoc: any, totalPages: number) => {
     if (!magazine?.id) return;
     setProcessingPage(pageNum);
     try {
-      const base64Image = await renderPdfPageToBase64(pdfDoc, pageNum);
-      const res = await fetch(`/api/magazine/${magazine.id}/translate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ base64Image, pageNumber: pageNum, totalPages }),
-      });
+      // Find existing translation state if any
+      const currentTrans = translations.find(t => t.pageNumber === pageNum);
+      const currentStatus = currentTrans?.status;
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `Page ${pageNum} translation failed`);
+      // STAGE 1: OCR ONLY
+      if (!currentStatus || currentStatus === "pending" || currentStatus === "processing" || currentStatus === "failed" || !currentTrans?.originalText) {
+        toast.loading(`Page ${pageNum}: Stage 1/4 (Telugu OCR)...`, { id: "translation-progress" });
+        const base64Image = await renderPdfPageToBase64(pdfDoc, pageNum);
+        const res = await fetch(`/api/magazine/${magazine.id}/translate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ base64Image, pageNumber: pageNum, totalPages, stage: "ocr" }),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Page ${pageNum} OCR failed`);
+        }
       }
 
-      // Refresh translations
+      // STAGE 2: TRANSLATE ENGLISH
+      if (!currentTrans?.translations?.en) {
+        toast.loading(`Page ${pageNum}: Stage 2/4 (English Translation)...`, { id: "translation-progress" });
+        const res = await fetch(`/api/magazine/${magazine.id}/translate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageNumber: pageNum, totalPages, stage: "translate_en" }),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Page ${pageNum} English translation failed`);
+        }
+      }
+
+      // STAGE 3: TRANSLATE KANNADA
+      if (!currentTrans?.translations?.kn) {
+        toast.loading(`Page ${pageNum}: Stage 3/4 (Kannada Translation)...`, { id: "translation-progress" });
+        const res = await fetch(`/api/magazine/${magazine.id}/translate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageNumber: pageNum, totalPages, stage: "translate_kn" }),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Page ${pageNum} Kannada translation failed`);
+        }
+      }
+
+      // STAGE 4: TRANSLATE TAMIL
+      if (!currentTrans?.translations?.ta) {
+        toast.loading(`Page ${pageNum}: Stage 4/4 (Tamil Translation)...`, { id: "translation-progress" });
+        const res = await fetch(`/api/magazine/${magazine.id}/translate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageNumber: pageNum, totalPages, stage: "translate_ta" }),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Page ${pageNum} Tamil translation failed`);
+        }
+      }
+
+      // Refresh translations after full page completion
       await fetchTranslations();
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || `Failed to translate page ${pageNum}`);
+      throw error; // Rethrow to stop bulk loop on failure
     } finally {
       setProcessingPage(null);
     }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { processMagazinePageMultimodal } from "@/lib/gemini";
+import { processMagazinePageOcr, processMagazinePageSingleTranslation } from "@/lib/gemini";
 import { saveMagazinePageTranslation, updateMagazineTranslationStatus, getMagazinePageTranslation } from "@/lib/firestore";
 
 // Enforce maximum Vercel serverless execution time for AI multimodal processing
@@ -13,71 +13,147 @@ export async function POST(
     const { id } = await params;
     const magazineId = id;
     const body = await request.json();
-    const { base64Image, pageNumber, totalPages } = body;
+    const { base64Image, pageNumber, totalPages, stage } = body;
 
-    if (!base64Image || !pageNumber) {
-      return NextResponse.json({ error: "Missing base64Image or pageNumber" }, { status: 400 });
+    if (!pageNumber || !stage) {
+      return NextResponse.json({ error: "Missing pageNumber or stage" }, { status: 400 });
     }
 
-    // Clean base64 prefix if present (e.g. data:image/jpeg;base64,...)
-    const base64Data = base64Image.includes("base64,") 
-      ? base64Image.split("base64,")[1] 
-      : base64Image;
-
-    // 1. Check if already completed to prevent redundant AI billing
     const existing = await getMagazinePageTranslation(magazineId, pageNumber);
-    if (existing?.status === "completed" && existing.translations?.en) {
-      console.log(`[API] Page ${pageNumber} already translated. Skipping Gemini processing.`);
-      return NextResponse.json({
-        success: true,
-        pageNumber,
-        confidenceScore: existing.confidenceScore || 95,
-        cached: true,
-      });
-    }
 
-    // 2. Mark as processing in Firestore
-    await saveMagazinePageTranslation(magazineId, pageNumber, {
-      status: "processing",
-    });
+    // ─── STAGE 1: OCR ONLY ──────────────────────────────────────────────────
+    if (stage === "ocr") {
+      if (existing?.status && existing.status !== "pending" && existing.status !== "processing" && existing.status !== "failed" && existing.originalText !== undefined) {
+        console.log(`[API] Page ${pageNumber} OCR already completed. Skipping.`);
+        return NextResponse.json({ success: true, pageNumber, stage: "ocr", cached: true });
+      }
 
-    // 2. Call Gemini Multimodal AI
-    const aiResult = await processMagazinePageMultimodal(base64Data, pageNumber);
+      if (!base64Image) {
+        return NextResponse.json({ error: "Missing base64Image for OCR stage" }, { status: 400 });
+      }
 
-    if (!aiResult || aiResult.error) {
-      const errorMessage = aiResult?.error || "AI processing returned null or timed out.";
-      // Mark failed
+      const base64Data = base64Image.includes("base64,") ? base64Image.split("base64,")[1] : base64Image;
+
+      await saveMagazinePageTranslation(magazineId, pageNumber, { status: "processing" });
+
+      const ocrResult = await processMagazinePageOcr(base64Data, pageNumber);
+
+      if (ocrResult.error) {
+        await saveMagazinePageTranslation(magazineId, pageNumber, { status: "failed", errorMessage: ocrResult.error });
+        return NextResponse.json({ error: ocrResult.error }, { status: 500 });
+      }
+
       await saveMagazinePageTranslation(magazineId, pageNumber, {
-        status: "failed",
-        errorMessage,
+        status: "ocr_completed",
+        originalText: ocrResult.originalText || "",
+        confidenceScore: ocrResult.confidenceScore || 95,
+        executionTimeMs: ocrResult.executionTimeMs,
+        estimatedTokens: ocrResult.estimatedTokens,
       });
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
+
+      if (totalPages) {
+        await updateMagazineTranslationStatus(magazineId, {
+          lastTranslatedPage: pageNumber,
+          status: "processing",
+        });
+      }
+
+      return NextResponse.json({ success: true, pageNumber, stage: "ocr" });
     }
 
-    // 3. Save completed translation
-    await saveMagazinePageTranslation(magazineId, pageNumber, {
-      status: "completed",
-      originalText: aiResult.originalText,
-      translations: aiResult.translations,
-      confidenceScore: aiResult.confidenceScore,
-      executionTimeMs: aiResult.executionTimeMs,
-      estimatedTokens: aiResult.estimatedTokens,
-    });
+    // ─── STAGE 2: TRANSLATE ENGLISH ──────────────────────────────────────────
+    if (stage === "translate_en") {
+      if (existing?.translations?.en) {
+        console.log(`[API] Page ${pageNumber} English translation already exists. Skipping.`);
+        return NextResponse.json({ success: true, pageNumber, stage: "translate_en", cached: true });
+      }
 
-    // 4. Update parent magazine translation status metadata
-    if (totalPages) {
-      await updateMagazineTranslationStatus(magazineId, {
-        lastTranslatedPage: pageNumber,
-        totalTranslatedPages: pageNumber, // In incremental flow, this tracks progress
-        status: pageNumber === totalPages ? "completed" : "processing",
+      const originalText = existing?.originalText || "";
+      await saveMagazinePageTranslation(magazineId, pageNumber, { status: "translating_en" });
+
+      const transResult = await processMagazinePageSingleTranslation(originalText, "en", pageNumber);
+
+      if (transResult.error) {
+        await saveMagazinePageTranslation(magazineId, pageNumber, { status: "failed", errorMessage: transResult.error });
+        return NextResponse.json({ error: transResult.error }, { status: 500 });
+      }
+
+      const currentTranslations = existing?.translations || {};
+      await saveMagazinePageTranslation(magazineId, pageNumber, {
+        status: "translating_kn",
+        translations: { ...currentTranslations, en: transResult.translation || "" },
+        executionTimeMs: (existing?.executionTimeMs || 0) + (transResult.executionTimeMs || 0),
+        estimatedTokens: (existing?.estimatedTokens || 0) + (transResult.estimatedTokens || 0),
       });
+
+      return NextResponse.json({ success: true, pageNumber, stage: "translate_en" });
     }
 
-    return NextResponse.json({
-      success: true,
-      pageNumber,
-      confidenceScore: aiResult.confidenceScore,
-    });
+    // ─── STAGE 3: TRANSLATE KANNADA ──────────────────────────────────────────
+    if (stage === "translate_kn") {
+      if (existing?.translations?.kn) {
+        console.log(`[API] Page ${pageNumber} Kannada translation already exists. Skipping.`);
+        return NextResponse.json({ success: true, pageNumber, stage: "translate_kn", cached: true });
+      }
+
+      const originalText = existing?.originalText || "";
+      await saveMagazinePageTranslation(magazineId, pageNumber, { status: "translating_kn" });
+
+      const transResult = await processMagazinePageSingleTranslation(originalText, "kn", pageNumber);
+
+      if (transResult.error) {
+        await saveMagazinePageTranslation(magazineId, pageNumber, { status: "failed", errorMessage: transResult.error });
+        return NextResponse.json({ error: transResult.error }, { status: 500 });
+      }
+
+      const currentTranslations = existing?.translations || {};
+      await saveMagazinePageTranslation(magazineId, pageNumber, {
+        status: "translating_ta",
+        translations: { ...currentTranslations, kn: transResult.translation || "" },
+        executionTimeMs: (existing?.executionTimeMs || 0) + (transResult.executionTimeMs || 0),
+        estimatedTokens: (existing?.estimatedTokens || 0) + (transResult.estimatedTokens || 0),
+      });
+
+      return NextResponse.json({ success: true, pageNumber, stage: "translate_kn" });
+    }
+
+    // ─── STAGE 4: TRANSLATE TAMIL ────────────────────────────────────────────
+    if (stage === "translate_ta") {
+      if (existing?.translations?.ta) {
+        console.log(`[API] Page ${pageNumber} Tamil translation already exists. Skipping.`);
+        return NextResponse.json({ success: true, pageNumber, stage: "translate_ta", cached: true });
+      }
+
+      const originalText = existing?.originalText || "";
+      await saveMagazinePageTranslation(magazineId, pageNumber, { status: "translating_ta" });
+
+      const transResult = await processMagazinePageSingleTranslation(originalText, "ta", pageNumber);
+
+      if (transResult.error) {
+        await saveMagazinePageTranslation(magazineId, pageNumber, { status: "failed", errorMessage: transResult.error });
+        return NextResponse.json({ error: transResult.error }, { status: 500 });
+      }
+
+      const currentTranslations = existing?.translations || {};
+      await saveMagazinePageTranslation(magazineId, pageNumber, {
+        status: "completed",
+        translations: { ...currentTranslations, ta: transResult.translation || "" },
+        executionTimeMs: (existing?.executionTimeMs || 0) + (transResult.executionTimeMs || 0),
+        estimatedTokens: (existing?.estimatedTokens || 0) + (transResult.estimatedTokens || 0),
+      });
+
+      if (totalPages) {
+        await updateMagazineTranslationStatus(magazineId, {
+          lastTranslatedPage: pageNumber,
+          totalTranslatedPages: pageNumber,
+          status: pageNumber === totalPages ? "completed" : "processing",
+        });
+      }
+
+      return NextResponse.json({ success: true, pageNumber, stage: "translate_ta" });
+    }
+
+    return NextResponse.json({ error: "Invalid stage specified" }, { status: 400 });
 
   } catch (error: any) {
     console.error("POST /api/magazine/[id]/translate error:", error);

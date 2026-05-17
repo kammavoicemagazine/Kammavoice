@@ -141,7 +141,7 @@ export interface Magazine {
 export interface MagazinePageTranslation {
   id?: string;
   pageNumber: number; // 1-indexed
-  status: "pending" | "processing" | "completed" | "failed";
+  status: "pending" | "processing" | "ocr_completed" | "translating_en" | "translating_kn" | "translating_ta" | "completed" | "failed";
   originalText: string; // Extracted Telugu OCR
   translations: {
     en?: string; // English

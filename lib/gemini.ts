@@ -39,7 +39,7 @@ const model = genAI.getGenerativeModel({
   },
 });
 
-const translationModel = genAI.getGenerativeModel({
+const ocrModel = genAI.getGenerativeModel({
   model: "gemini-1.5-flash",
   generationConfig: {
     responseMimeType: "application/json",
@@ -50,21 +50,29 @@ const translationModel = genAI.getGenerativeModel({
           type: SchemaType.STRING,
           description: "The exact Telugu text extracted from the page image (OCR). Preserve paragraph breaks. If the page is purely an image/ad with no readable text, return empty string.",
         },
-        translations: {
-          type: SchemaType.OBJECT,
-          properties: {
-            en: { type: SchemaType.STRING, description: "High-quality, natural English translation preserving names, community terms, and context." },
-            kn: { type: SchemaType.STRING, description: "High-quality Kannada translation." },
-            ta: { type: SchemaType.STRING, description: "High-quality Tamil translation." },
-          },
-          required: ["en", "kn", "ta"],
-        },
         confidenceScore: {
           type: SchemaType.INTEGER,
           description: "Estimated OCR confidence score from 0 to 100 based on text legibility.",
         },
       },
-      required: ["originalText", "translations", "confidenceScore"],
+      required: ["originalText", "confidenceScore"],
+    },
+  },
+});
+
+const singleTranslationModel = genAI.getGenerativeModel({
+  model: "gemini-1.5-flash",
+  generationConfig: {
+    responseMimeType: "application/json",
+    responseSchema: {
+      type: SchemaType.OBJECT,
+      properties: {
+        translation: {
+          type: SchemaType.STRING,
+          description: "High-quality, natural translation preserving names, community terms, and context.",
+        },
+      },
+      required: ["translation"],
     },
   },
 });
@@ -121,49 +129,32 @@ export async function processArticleWithAI(
   }
 }
 
-export interface PageTranslationResult {
+export interface OcrProcessingResult {
   originalText?: string;
-  translations?: {
-    en: string;
-    kn: string;
-    ta: string;
-  };
   confidenceScore?: number;
   executionTimeMs?: number;
   estimatedTokens?: number;
   error?: string;
 }
 
-/**
- * Multimodal OCR + Translation in a single Gemini call.
- * Accepts base64 image data (without data:image/... prefix).
- */
-export async function processMagazinePageMultimodal(
+export async function processMagazinePageOcr(
   base64Image: string,
   pageNumber: number,
   mimeType = "image/jpeg",
   retries = 2
-): Promise<PageTranslationResult | null> {
+): Promise<OcrProcessingResult> {
   if (!process.env.GEMINI_API_KEY) {
-    console.warn("GEMINI_API_KEY not found. Skipping multimodal translation.");
     return { error: "GEMINI_API_KEY environment variable is missing on Vercel." };
   }
 
   const prompt = `
-    You are an expert multilingual OCR and Editorial AI for "Kamma Voice", a premium Telugu digital publishing platform serving the Kamma community globally.
+    You are an expert multilingual OCR AI for "Kamma Voice", a premium Telugu digital publishing platform serving the Kamma community globally.
     
     Task:
-    1. Perform highly accurate OCR on the provided magazine page image (Page #${pageNumber}). Extract all Telugu text sequentially, preserving paragraph breaks, headers, and editorial formatting.
-    2. If the page is purely a visual graphic, cover page, or advertisement with no meaningful editorial text, set originalText to "" and translations to empty strings.
-    3. Translate the extracted Telugu text into high-quality, natural English, Kannada, and Tamil.
+    Perform highly accurate OCR on the provided magazine page image (Page #${pageNumber}). Extract all Telugu text sequentially, preserving paragraph breaks, headers, and editorial formatting.
+    If the page is purely a visual graphic, cover page, or advertisement with no meaningful editorial text, set originalText to "".
     
-    CRITICAL GLOSSARY & TRANSLATION RULES:
-    - DO NOT translate proper nouns, family names, or political figures literally (e.g., maintain names like N. Chandrababu Naidu, NTR, Nandamuri, Akkineni, Daggubati, Kodali Nani, Devineni exactly).
-    - DO NOT translate community organization acronyms or names literally (e.g., TANA - Telugu Association of North America, NATS - North America Telugu Society, KIT - Kamma Icon Trust).
-    - Preserve cultural and community-specific terms with appropriate contextual framing rather than awkward literal dictionary lookups.
-    - Avoid robotic, word-for-word AI phrasing. Maintain an elegant, journalistic, and cinematic tone suitable for a premium digital magazine.
-    - Ensure all paragraph breaks (\\n\\n) match the original layout flow.
-    
+    Ensure all paragraph breaks (\n\n) match the original layout flow.
     Analyze the image and return the required JSON structure.
   `;
 
@@ -176,58 +167,149 @@ export async function processMagazinePageMultimodal(
   };
 
   for (let attempt = 1; attempt <= retries + 1; attempt++) {
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(new Error("Vercel Runtime Timeout Error: Task timed out")), 25000);
+
     try {
-      console.log(`[Gemini AI] Attempt ${attempt} for Page ${pageNumber}...`);
+      console.log(`[Gemini AI OCR] Attempt ${attempt} for Page ${pageNumber}...`);
       const startTime = performance.now();
-      const result = await translationModel.generateContent([prompt, imagePart]);
+      const result = await ocrModel.generateContent([prompt, imagePart], { requestOptions: { signal: abortController.signal } });
+      clearTimeout(timeoutId);
       const endTime = performance.now();
       const executionTimeMs = Math.round(endTime - startTime);
 
       const responseText = result.response.text();
-      
-      // Estimate tokens (approx 4 chars per token for text, plus image base64 overhead)
       const estimatedPromptTokens = Math.round((prompt.length + (base64Image.length * 0.75)) / 4);
       const estimatedCompletionTokens = Math.round(responseText.length / 4);
       const totalEstimatedTokens = estimatedPromptTokens + estimatedCompletionTokens;
 
-      console.log(`[Gemini AI] Page ${pageNumber} Processed in ${executionTimeMs}ms | Est. Tokens: Prompt ~${estimatedPromptTokens}, Completion ~${estimatedCompletionTokens}`);
+      console.log(`[Gemini AI OCR] Page ${pageNumber} Processed in ${executionTimeMs}ms | Est. Tokens: ~${totalEstimatedTokens}`);
 
-      // Robust JSON parsing with sanitization
       let parsed: any;
       try {
         parsed = JSON.parse(responseText);
       } catch (parseErr) {
-        // Attempt fallback cleanup if AI returned markdown code block e.g. \`\`\`json ... \`\`\`
         const cleaned = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
         parsed = JSON.parse(cleaned);
       }
 
-      // Validate structure securely
-      if (typeof parsed?.originalText !== "string" || !parsed?.translations) {
+      if (typeof parsed?.originalText !== "string") {
         throw new Error("Malformed AI JSON response structure");
       }
 
       return {
         originalText: parsed.originalText.trim(),
-        translations: {
-          en: (parsed.translations.en || "").trim(),
-          kn: (parsed.translations.kn || "").trim(),
-          ta: (parsed.translations.ta || "").trim(),
-        },
         confidenceScore: typeof parsed.confidenceScore === "number" ? parsed.confidenceScore : 95,
         executionTimeMs,
         estimatedTokens: totalEstimatedTokens,
       };
     } catch (error: any) {
+      clearTimeout(timeoutId);
       lastError = error;
-      console.warn(`[Gemini AI] Attempt ${attempt} failed for Page ${pageNumber}:`, error.message || error);
+      console.warn(`[Gemini AI OCR] Attempt ${attempt} failed for Page ${pageNumber}:`, error.message || error);
       if (attempt <= retries) {
-        // Exponential backoff before retry
         await new Promise(resolve => setTimeout(resolve, attempt * 1500));
       }
     }
   }
 
-  console.error(`Gemini Multimodal Translation Error (Page ${pageNumber}) after ${retries + 1} attempts:`, lastError);
-  return { error: lastError?.message || lastError || "AI processing returned null or timed out" };
+  console.error(`Gemini OCR Error (Page ${pageNumber}) after ${retries + 1} attempts:`, lastError);
+  return { error: lastError?.message || lastError || "AI OCR processing returned null or timed out" };
+}
+
+export interface SingleTranslationResult {
+  translation?: string;
+  executionTimeMs?: number;
+  estimatedTokens?: number;
+  error?: string;
+}
+
+export async function processMagazinePageSingleTranslation(
+  originalText: string,
+  targetLang: "en" | "kn" | "ta",
+  pageNumber: number,
+  retries = 2
+): Promise<SingleTranslationResult> {
+  if (!process.env.GEMINI_API_KEY) {
+    return { error: "GEMINI_API_KEY environment variable is missing on Vercel." };
+  }
+
+  if (!originalText.trim()) {
+    return { translation: "", executionTimeMs: 0, estimatedTokens: 0 };
+  }
+
+  const langNames = { en: "English", kn: "Kannada", ta: "Tamil" };
+  const targetLangName = langNames[targetLang];
+
+  const prompt = `
+    You are an expert Editorial AI for "Kamma Voice", a premium Telugu digital publishing platform serving the Kamma community globally.
+    
+    Task:
+    Translate the following extracted Telugu magazine text (from Page #${pageNumber}) into high-quality, natural ${targetLangName}.
+    
+    CRITICAL GLOSSARY & TRANSLATION RULES:
+    - DO NOT translate proper nouns, family names, or political figures literally (e.g., maintain names like N. Chandrababu Naidu, NTR, Nandamuri, Akkineni, Daggubati, Kodali Nani, Devineni exactly).
+    - DO NOT translate community organization acronyms or names literally (e.g., TANA - Telugu Association of North America, NATS - North America Telugu Society, KIT - Kamma Icon Trust).
+    - Preserve cultural and community-specific terms with appropriate contextual framing rather than awkward literal dictionary lookups.
+    - Avoid robotic, word-for-word AI phrasing. Maintain an elegant, journalistic, and cinematic tone suitable for a premium digital magazine.
+    - Ensure all paragraph breaks (\n\n) match the original layout flow.
+    
+    Telugu Original Text:
+    """
+    ${originalText}
+    """
+    
+    Return the JSON object containing the translation.
+  `;
+
+  let lastError: any = null;
+
+  for (let attempt = 1; attempt <= retries + 1; attempt++) {
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(new Error("Vercel Runtime Timeout Error: Task timed out")), 25000);
+
+    try {
+      console.log(`[Gemini AI Translate ${targetLang}] Attempt ${attempt} for Page ${pageNumber}...`);
+      const startTime = performance.now();
+      const result = await singleTranslationModel.generateContent(prompt, { requestOptions: { signal: abortController.signal } });
+      clearTimeout(timeoutId);
+      const endTime = performance.now();
+      const executionTimeMs = Math.round(endTime - startTime);
+
+      const responseText = result.response.text();
+      const estimatedPromptTokens = Math.round(prompt.length / 4);
+      const estimatedCompletionTokens = Math.round(responseText.length / 4);
+      const totalEstimatedTokens = estimatedPromptTokens + estimatedCompletionTokens;
+
+      console.log(`[Gemini AI Translate ${targetLang}] Page ${pageNumber} Processed in ${executionTimeMs}ms | Est. Tokens: ~${totalEstimatedTokens}`);
+
+      let parsed: any;
+      try {
+        parsed = JSON.parse(responseText);
+      } catch (parseErr) {
+        const cleaned = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+        parsed = JSON.parse(cleaned);
+      }
+
+      if (typeof parsed?.translation !== "string") {
+        throw new Error("Malformed AI JSON response structure");
+      }
+
+      return {
+        translation: parsed.translation.trim(),
+        executionTimeMs,
+        estimatedTokens: totalEstimatedTokens,
+      };
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      lastError = error;
+      console.warn(`[Gemini AI Translate ${targetLang}] Attempt ${attempt} failed for Page ${pageNumber}:`, error.message || error);
+      if (attempt <= retries) {
+        await new Promise(resolve => setTimeout(resolve, attempt * 1500));
+      }
+    }
+  }
+
+  console.error(`Gemini Translation Error (${targetLang}, Page ${pageNumber}) after ${retries + 1} attempts:`, lastError);
+  return { error: lastError?.message || lastError || "AI translation processing returned null or timed out" };
 }
