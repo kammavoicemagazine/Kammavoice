@@ -90,7 +90,8 @@ export default function MagazineForm({ magazine, mode }: MagazineFormProps) {
       });
 
       if (!res.ok) {
-        throw new Error(`Page ${pageNum} translation failed`);
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Page ${pageNum} translation failed`);
       }
 
       // Refresh translations

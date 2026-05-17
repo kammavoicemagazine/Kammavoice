@@ -122,15 +122,16 @@ export async function processArticleWithAI(
 }
 
 export interface PageTranslationResult {
-  originalText: string;
-  translations: {
+  originalText?: string;
+  translations?: {
     en: string;
     kn: string;
     ta: string;
   };
-  confidenceScore: number;
+  confidenceScore?: number;
   executionTimeMs?: number;
   estimatedTokens?: number;
+  error?: string;
 }
 
 /**
@@ -145,7 +146,7 @@ export async function processMagazinePageMultimodal(
 ): Promise<PageTranslationResult | null> {
   if (!process.env.GEMINI_API_KEY) {
     console.warn("GEMINI_API_KEY not found. Skipping multimodal translation.");
-    return null;
+    return { error: "GEMINI_API_KEY environment variable is missing on Vercel." };
   }
 
   const prompt = `
@@ -228,5 +229,5 @@ export async function processMagazinePageMultimodal(
   }
 
   console.error(`Gemini Multimodal Translation Error (Page ${pageNumber}) after ${retries + 1} attempts:`, lastError);
-  return null;
+  return { error: lastError?.message || lastError || "AI processing returned null or timed out" };
 }

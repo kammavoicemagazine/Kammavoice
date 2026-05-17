@@ -44,13 +44,14 @@ export async function POST(
     // 2. Call Gemini Multimodal AI
     const aiResult = await processMagazinePageMultimodal(base64Data, pageNumber);
 
-    if (!aiResult) {
+    if (!aiResult || aiResult.error) {
+      const errorMessage = aiResult?.error || "AI processing returned null or timed out.";
       // Mark failed
       await saveMagazinePageTranslation(magazineId, pageNumber, {
         status: "failed",
-        errorMessage: "AI processing returned null or timed out.",
+        errorMessage,
       });
-      return NextResponse.json({ error: "AI translation failed" }, { status: 500 });
+      return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 
     // 3. Save completed translation
