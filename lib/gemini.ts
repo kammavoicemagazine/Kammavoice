@@ -173,7 +173,7 @@ export async function processMagazinePageOcr(
     try {
       console.log(`[Gemini AI OCR] Attempt ${attempt} for Page ${pageNumber}...`);
       const startTime = performance.now();
-      const result = await ocrModel.generateContent([prompt, imagePart], { requestOptions: { signal: abortController.signal } });
+      const result = await ocrModel.generateContent([prompt, imagePart], { signal: abortController.signal });
       clearTimeout(timeoutId);
       const endTime = performance.now();
       const executionTimeMs = Math.round(endTime - startTime);
@@ -271,7 +271,7 @@ export async function processMagazinePageSingleTranslation(
     try {
       console.log(`[Gemini AI Translate ${targetLang}] Attempt ${attempt} for Page ${pageNumber}...`);
       const startTime = performance.now();
-      const result = await singleTranslationModel.generateContent(prompt, { requestOptions: { signal: abortController.signal } });
+      const result = await singleTranslationModel.generateContent(prompt, { signal: abortController.signal });
       clearTimeout(timeoutId);
       const endTime = performance.now();
       const executionTimeMs = Math.round(endTime - startTime);
