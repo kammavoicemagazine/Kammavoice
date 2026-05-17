@@ -2,14 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save, ArrowLeft } from "lucide-react";
+import { Loader2, Save, ArrowLeft, Globe, RefreshCw, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import ImageUploader from "@/components/ui/image-uploader";
 import PdfUploader from "@/components/ui/pdf-uploader";
-import { createMagazine, updateMagazine } from "@/lib/firestore";
+import { createMagazine, updateMagazine, getMagazineAllPageTranslations } from "@/lib/firestore";
 import { slugify } from "@/lib/utils";
-import type { Magazine } from "@/lib/types";
+import type { Magazine, MagazinePageTranslation } from "@/lib/types";
+import { pdfjs } from "react-pdf";
+
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface MagazineFormProps {
   magazine?: Magazine | null;
@@ -42,6 +46,96 @@ export default function MagazineForm({ magazine, mode }: MagazineFormProps) {
       setSlug(slugify(title));
     }
   }, [title, mode]);
+
+  // Translation State
+  const [translations, setTranslations] = useState<MagazinePageTranslation[]>([]);
+  const [isProcessingTranslations, setIsProcessingTranslations] = useState(false);
+  const [processingPage, setProcessingPage] = useState<number | null>(null);
+
+  const fetchTranslations = async () => {
+    if (mode === "edit" && magazine?.id) {
+      const data = await getMagazineAllPageTranslations(magazine.id);
+      setTranslations(data);
+    }
+  };
+
+  useEffect(() => {
+    fetchTranslations();
+  }, [mode, magazine]);
+
+  /** Helper to render a PDF page to base64 */
+  const renderPdfPageToBase64 = async (pdfDoc: any, pageNum: number): Promise<string> => {
+    const page = await pdfDoc.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 1.5 }); // High-res scale for OCR
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext("2d")!;
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const base64 = canvas.toDataURL("image/jpeg", 0.85);
+    page.cleanup();
+    return base64;
+  };
+
+  /** Process translation for a single page */
+  const processTranslationForPage = async (pageNum: number, pdfDoc: any, totalPages: number) => {
+    if (!magazine?.id) return;
+    setProcessingPage(pageNum);
+    try {
+      const base64Image = await renderPdfPageToBase64(pdfDoc, pageNum);
+      const res = await fetch(`/api/magazine/${magazine.id}/translate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64Image, pageNumber: pageNum, totalPages }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Page ${pageNum} translation failed`);
+      }
+
+      // Refresh translations
+      await fetchTranslations();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || `Failed to translate page ${pageNum}`);
+    } finally {
+      setProcessingPage(null);
+    }
+  };
+
+  /** Handle bulk processing of missing/failed translations */
+  const handleProcessMissingTranslations = async () => {
+    if (!magazine?.id || !pdfUrl) {
+      toast.error("Magazine PDF is required before processing translations.");
+      return;
+    }
+
+    setIsProcessingTranslations(true);
+    toast.info("Initializing AI Multimodal Translation Pipeline...");
+
+    try {
+      const loadingTask = pdfjs.getDocument(pdfUrl);
+      const pdfDoc = await loadingTask.promise;
+      const totalPages = pdfDoc.numPages;
+
+      const existingMap = new Map(translations.map(t => [t.pageNumber, t.status]));
+
+      for (let i = 1; i <= totalPages; i++) {
+        const status = existingMap.get(i);
+        if (status !== "completed") {
+          toast.loading(`Processing Page ${i} of ${totalPages}...`, { id: "translation-progress" });
+          await processTranslationForPage(i, pdfDoc, totalPages);
+        }
+      }
+
+      toast.success("AI Translation Pipeline completed successfully!", { id: "translation-progress" });
+    } catch (error: any) {
+      console.error(error);
+      toast.error("Translation pipeline encountered an error.", { id: "translation-progress" });
+    } finally {
+      setIsProcessingTranslations(false);
+    }
+  };
 
   const validate = (): boolean => {
     if (!title.trim()) { toast.error("Title is required"); return false; }
@@ -280,6 +374,140 @@ export default function MagazineForm({ magazine, mode }: MagazineFormProps) {
           </div>
         </div>
       </div>
+
+      {/* Translation Management Section (Only in Edit Mode) */}
+      {mode === "edit" && magazine && (
+        <div className="p-6 rounded-xl border border-border-subtle bg-surface space-y-6 mt-12">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-subtle pb-6">
+            <div>
+              <h2 className="text-xl font-bold font-[family-name:var(--font-playfair)] flex items-center gap-2 text-gold">
+                <Globe className="w-6 h-6" /> Multimodal AI Translation Management
+              </h2>
+              <p className="text-sm text-muted mt-1">
+                Extract Telugu OCR and translate magazine pages into English, Kannada, and Tamil using Gemini AI.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={fetchTranslations}
+                disabled={isProcessingTranslations || processingPage !== null}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${isProcessingTranslations ? 'animate-spin' : ''}`} /> Refresh
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleProcessMissingTranslations}
+                disabled={isProcessingTranslations || processingPage !== null || !pdfUrl}
+                className="flex items-center gap-2 bg-gold text-black hover:bg-gold-light"
+              >
+                {isProcessingTranslations ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Processing AI...</>
+                ) : (
+                  <><Globe className="w-4 h-4" /> Process Missing Pages</>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Observability Analytics Bar */}
+          {(() => {
+            const completedCount = translations.filter(t => t.status === "completed").length;
+            const failedCount = translations.filter(t => t.status === "failed").length;
+            const validTimes = translations.filter(t => t.executionTimeMs);
+            const avgTime = validTimes.length > 0 
+              ? Math.round(validTimes.reduce((acc, t) => acc + (t.executionTimeMs || 0), 0) / validTimes.length) 
+              : 0;
+            const totalTokens = translations.reduce((acc, t) => acc + (t.estimatedTokens || 0), 0);
+
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-surface-hover border border-border-subtle shadow-inner">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted font-semibold uppercase tracking-wider">Translated Pages</span>
+                  <span className="text-xl font-bold text-green-500">{completedCount} / {pageCount || magazine.pageCount || 0}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted font-semibold uppercase tracking-wider">Failed Pages</span>
+                  <span className="text-xl font-bold text-red-500">{failedCount}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted font-semibold uppercase tracking-wider">Avg AI Response</span>
+                  <span className="text-xl font-bold text-gold">{avgTime ? `${avgTime}ms` : "N/A"}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted font-semibold uppercase tracking-wider">Est. Token Usage</span>
+                  <span className="text-xl font-bold text-blue-400">{totalTokens ? `~${totalTokens.toLocaleString()}` : "N/A"}</span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Pages Grid */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-muted uppercase tracking-wider">Page Translation Status</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+              {Array.from({ length: pageCount || magazine.pageCount || 0 }, (_, i) => i + 1).map((pageNum) => {
+                const trans = translations.find(t => t.pageNumber === pageNum);
+                const isCurrentProcessing = processingPage === pageNum;
+
+                let statusColor = "border-border-subtle bg-surface-hover text-muted";
+                let statusIcon = <Clock className="w-3.5 h-3.5" />;
+                let statusLabel = "Missing";
+
+                if (isCurrentProcessing) {
+                  statusColor = "border-yellow-500/50 bg-yellow-500/10 text-yellow-500 animate-pulse";
+                  statusIcon = <Loader2 className="w-3.5 h-3.5 animate-spin" />;
+                  statusLabel = "Processing";
+                } else if (trans?.status === "completed") {
+                  statusColor = "border-green-500/50 bg-green-500/10 text-green-500";
+                  statusIcon = <CheckCircle2 className="w-3.5 h-3.5" />;
+                  statusLabel = `Done (${trans.confidenceScore || 100}%)`;
+                } else if (trans?.status === "failed") {
+                  statusColor = "border-red-500/50 bg-red-500/10 text-red-500";
+                  statusIcon = <AlertCircle className="w-3.5 h-3.5" />;
+                  statusLabel = "Failed";
+                } else if (trans?.status === "processing") {
+                  statusColor = "border-yellow-500/50 bg-yellow-500/10 text-yellow-500";
+                  statusIcon = <Loader2 className="w-3.5 h-3.5 animate-spin" />;
+                  statusLabel = "Queued";
+                }
+
+                return (
+                  <div
+                    key={pageNum}
+                    className={`p-3 rounded-lg border ${statusColor} flex flex-col items-center justify-center text-center gap-1.5 transition-all relative group`}
+                  >
+                    <span className="text-xs font-bold text-foreground">Page {pageNum}</span>
+                    <div className="flex items-center gap-1 text-[10px] font-medium">
+                      {statusIcon}
+                      <span>{statusLabel}</span>
+                    </div>
+
+                    {/* Hover Action to Retry Individual Page */}
+                    {trans?.status !== "completed" && !isCurrentProcessing && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!pdfUrl) return;
+                          const loadingTask = pdfjs.getDocument(pdfUrl);
+                          const pdfDoc = await loadingTask.promise;
+                          await processTranslationForPage(pageNum, pdfDoc, magazine.pageCount);
+                        }}
+                        className="absolute inset-0 bg-black/80 text-gold text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center backdrop-blur-sm transition-opacity"
+                      >
+                        Retry Page {pageNum}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

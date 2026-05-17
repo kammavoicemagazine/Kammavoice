@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Globe } from "lucide-react";
 import type { Magazine } from "@/lib/types";
 
 export default function MagazineArchive({ magazines }: { magazines: Magazine[] }) {
@@ -56,7 +56,14 @@ export default function MagazineArchive({ magazines }: { magazines: Magazine[] }
                         sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
                       />
                       
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                      {/* Multilingual AI Badge */}
+                      {magazine.translationStatus?.totalTranslatedPages ? (
+                        <div className="absolute top-2.5 left-2.5 z-10 px-2.5 py-1 rounded-full bg-black/85 backdrop-blur-md border border-gold/40 text-gold text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-lg">
+                          <Globe className="w-3 h-3 animate-pulse" /> Multilingual AI
+                        </div>
+                      ) : null}
+
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm z-20">
                         <span className="flex items-center gap-2 text-white font-medium bg-gold/90 px-4 py-2 rounded-full transform translate-y-4 group-hover:translate-y-0 transition-transform">
                           Read <ArrowRight className="w-4 h-4" />
                         </span>

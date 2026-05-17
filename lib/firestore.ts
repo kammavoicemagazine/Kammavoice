@@ -4,6 +4,7 @@ import {
   getDocs,
   getDoc,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -15,7 +16,7 @@ import {
   type QueryConstraint,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import type { Article, Category, Advertisement, GalleryImage, Magazine } from "./types";
+import type { Article, Category, Advertisement, GalleryImage, Magazine, MagazinePageTranslation } from "./types";
 
 /* ═══════════════════════════════════════════════════════════════
    ARTICLES
@@ -416,6 +417,91 @@ export async function updateAggregatedArticleStatus(id: string, status: "approve
     await updateDoc(ref, updateData);
   } catch (error) {
     console.error("Error updating article status:", error);
+    throw error;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAGAZINE TRANSLATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/** Save or update a magazine page translation document in the subcollection */
+export async function saveMagazinePageTranslation(
+  magazineId: string, 
+  pageNumber: number, 
+  data: Partial<MagazinePageTranslation>
+): Promise<void> {
+  try {
+    const pageRef = doc(db, "magazines", magazineId, "pages", pageNumber.toString());
+    const payload = {
+      pageNumber,
+      updatedAt: new Date().toISOString(),
+      ...data,
+    };
+    
+    const snap = await getDoc(pageRef);
+    if (snap.exists()) {
+      await updateDoc(pageRef, payload);
+    } else {
+      await setDoc(pageRef, payload);
+    }
+  } catch (error) {
+    console.error(`Error saving translation for mag ${magazineId} page ${pageNumber}:`, error);
+    throw error;
+  }
+}
+
+/** Fetch a single page translation */
+export async function getMagazinePageTranslation(magazineId: string, pageNumber: number): Promise<MagazinePageTranslation | null> {
+  try {
+    const pageRef = doc(db, "magazines", magazineId, "pages", pageNumber.toString());
+    const snap = await getDoc(pageRef);
+    if (!snap.exists()) return null;
+    return { id: snap.id, ...snap.data() } as MagazinePageTranslation;
+  } catch (error) {
+    console.error(`Error fetching translation for mag ${magazineId} page ${pageNumber}:`, error);
+    return null;
+  }
+}
+
+/** Fetch all page translations for a magazine */
+export async function getMagazineAllPageTranslations(magazineId: string): Promise<MagazinePageTranslation[]> {
+  try {
+    const pagesColl = collection(db, "magazines", magazineId, "pages");
+    const q = query(pagesColl, orderBy("pageNumber", "asc"));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as MagazinePageTranslation));
+  } catch (error) {
+    console.error(`Error fetching all translations for mag ${magazineId}:`, error);
+    return [];
+  }
+}
+
+/** Update the magazine's parent translationStatus metadata */
+export async function updateMagazineTranslationStatus(
+  magazineId: string, 
+  statusUpdate: Partial<Magazine['translationStatus']>
+): Promise<void> {
+  try {
+    const magRef = doc(db, "magazines", magazineId);
+    const snap = await getDoc(magRef);
+    if (!snap.exists()) return;
+    
+    const currentStatus = snap.data().translationStatus || {
+      totalTranslatedPages: 0,
+      lastTranslatedPage: 0,
+      status: "idle"
+    };
+
+    await updateDoc(magRef, {
+      translationStatus: {
+        ...currentStatus,
+        ...statusUpdate,
+      },
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error(`Error updating translation status for mag ${magazineId}:`, error);
     throw error;
   }
 }

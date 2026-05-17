@@ -124,4 +124,33 @@ export interface Magazine {
   viewCount: number;
   createdAt: string;
   updatedAt: string;
+  
+  // Translation Fields
+  translationStatus?: {
+    totalTranslatedPages: number;
+    lastTranslatedPage: number;
+    status: "idle" | "processing" | "completed" | "error";
+    averageResponseTimeMs?: number;
+    totalEstimatedTokens?: number;
+    failedPageCount?: number;
+    lastLogMessage?: string;
+  };
+}
+
+/** Magazine Page Translation Subcollection Document */
+export interface MagazinePageTranslation {
+  id?: string;
+  pageNumber: number; // 1-indexed
+  status: "pending" | "processing" | "completed" | "failed";
+  originalText: string; // Extracted Telugu OCR
+  translations: {
+    en?: string; // English
+    kn?: string; // Kannada
+    ta?: string; // Tamil
+  };
+  confidenceScore?: number; // 0-100 OCR confidence
+  errorMessage?: string;
+  executionTimeMs?: number;
+  estimatedTokens?: number;
+  updatedAt: string;
 }

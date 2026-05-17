@@ -40,7 +40,7 @@ export default function MagazineReaderClient({
 
   return (
     <ErrorBoundary>
-      <FlipbookReader url={magazine.pdfUrl} title={magazine.title} />
+      <FlipbookReader url={magazine.pdfUrl} title={magazine.title} magazineId={magazine.id} />
     </ErrorBoundary>
   );
 }

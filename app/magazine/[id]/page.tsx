@@ -26,6 +26,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
+    alternates: {
+      canonical: `https://www.kammavoice.com/magazine/${id}`,
+      languages: {
+        "te": `https://www.kammavoice.com/magazine/${id}?lang=te`,
+        "en": `https://www.kammavoice.com/magazine/${id}?lang=en`,
+        "kn": `https://www.kammavoice.com/magazine/${id}?lang=kn`,
+        "ta": `https://www.kammavoice.com/magazine/${id}?lang=ta`,
+      },
+    },
     openGraph: {
       title,
       description,
@@ -79,6 +88,12 @@ export default async function MagazinePage({ params }: Props) {
     "issueNumber": magazine.volume,
     "datePublished": magazine.createdAt,
     "image": magazine.coverImageUrl,
+    "inLanguage": ["te", "en", "kn", "ta"],
+    "workTranslation": [
+      { "@type": "PublicationIssue", "inLanguage": "en", "name": `${magazine.title} (English Translation)` },
+      { "@type": "PublicationIssue", "inLanguage": "kn", "name": `${magazine.title} (Kannada Translation)` },
+      { "@type": "PublicationIssue", "inLanguage": "ta", "name": `${magazine.title} (Tamil Translation)` }
+    ],
     "publisher": {
       "@type": "Organization",
       "name": "Kamma Voice",

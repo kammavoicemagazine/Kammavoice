@@ -39,6 +39,36 @@ const model = genAI.getGenerativeModel({
   },
 });
 
+const translationModel = genAI.getGenerativeModel({
+  model: "gemini-1.5-flash",
+  generationConfig: {
+    responseMimeType: "application/json",
+    responseSchema: {
+      type: SchemaType.OBJECT,
+      properties: {
+        originalText: {
+          type: SchemaType.STRING,
+          description: "The exact Telugu text extracted from the page image (OCR). Preserve paragraph breaks. If the page is purely an image/ad with no readable text, return empty string.",
+        },
+        translations: {
+          type: SchemaType.OBJECT,
+          properties: {
+            en: { type: SchemaType.STRING, description: "High-quality, natural English translation preserving names, community terms, and context." },
+            kn: { type: SchemaType.STRING, description: "High-quality Kannada translation." },
+            ta: { type: SchemaType.STRING, description: "High-quality Tamil translation." },
+          },
+          required: ["en", "kn", "ta"],
+        },
+        confidenceScore: {
+          type: SchemaType.INTEGER,
+          description: "Estimated OCR confidence score from 0 to 100 based on text legibility.",
+        },
+      },
+      required: ["originalText", "translations", "confidenceScore"],
+    },
+  },
+});
+
 export interface AIProcessingResult {
   isRelevant: boolean;
   isSafe: boolean;
@@ -87,6 +117,99 @@ export async function processArticleWithAI(
     return JSON.parse(response) as AIProcessingResult;
   } catch (error) {
     console.error("Gemini AI Processing Error:", error);
+    return null;
+  }
+}
+
+export interface PageTranslationResult {
+  originalText: string;
+  translations: {
+    en: string;
+    kn: string;
+    ta: string;
+  };
+  confidenceScore: number;
+}
+
+/**
+ * Multimodal OCR + Translation in a single Gemini call.
+ * Accepts base64 image data (without data:image/... prefix).
+ */
+export async function processMagazinePageMultimodal(
+  base64Image: string,
+  pageNumber: number,
+  mimeType = "image/jpeg"
+): Promise<PageTranslationResult | null> {
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn("GEMINI_API_KEY not found. Skipping multimodal translation.");
+    return null;
+  }
+
+  const prompt = `
+    You are an expert multilingual OCR and Editorial AI for "Kamma Voice", a premium Telugu digital publishing platform serving the Kamma community globally.
+    
+    Task:
+    1. Perform highly accurate OCR on the provided magazine page image (Page #${pageNumber}). Extract all Telugu text sequentially, preserving paragraph breaks, headers, and editorial formatting.
+    2. If the page is purely a visual graphic, cover page, or advertisement with no meaningful editorial text, set originalText to "" and translations to empty strings.
+    3. Translate the extracted Telugu text into high-quality, natural English, Kannada, and Tamil.
+    
+    CRITICAL GLOSSARY & TRANSLATION RULES:
+    - DO NOT translate proper nouns, family names, or political figures literally (e.g., maintain names like N. Chandrababu Naidu, NTR, Nandamuri, Akkineni, Daggubati, Kodali Nani, Devineni exactly).
+    - DO NOT translate community organization acronyms or names literally (e.g., TANA - Telugu Association of North America, NATS - North America Telugu Society, KIT - Kamma Icon Trust).
+    - Preserve cultural and community-specific terms with appropriate contextual framing rather than awkward literal dictionary lookups.
+    - Avoid robotic, word-for-word AI phrasing. Maintain an elegant, journalistic, and cinematic tone suitable for a premium digital magazine.
+    - Ensure all paragraph breaks (\\n\\n) match the original layout flow.
+    
+    Analyze the image and return the required JSON structure.
+  `;
+
+  try {
+    const imagePart = {
+      inlineData: {
+        data: base64Image,
+        mimeType,
+      },
+    };
+
+    const startTime = performance.now();
+    const result = await translationModel.generateContent([prompt, imagePart]);
+    const endTime = performance.now();
+    const executionTimeMs = Math.round(endTime - startTime);
+
+    const responseText = result.response.text();
+    
+    // Estimate tokens (approx 4 chars per token for text, plus image base64 overhead)
+    const estimatedPromptTokens = Math.round((prompt.length + (base64Image.length * 0.75)) / 4);
+    const estimatedCompletionTokens = Math.round(responseText.length / 4);
+
+    console.log(`[Gemini AI] Page ${pageNumber} Processed in ${executionTimeMs}ms | Est. Tokens: Prompt ~${estimatedPromptTokens}, Completion ~${estimatedCompletionTokens}`);
+
+    // Robust JSON parsing with sanitization
+    let parsed: PageTranslationResult;
+    try {
+      parsed = JSON.parse(responseText);
+    } catch (parseErr) {
+      // Attempt fallback cleanup if AI returned markdown code block e.g. \`\`\`json ... \`\`\`
+      const cleaned = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+      parsed = JSON.parse(cleaned);
+    }
+
+    // Validate structure securely
+    if (typeof parsed?.originalText !== "string" || !parsed?.translations) {
+      throw new Error("Malformed AI JSON response structure");
+    }
+
+    return {
+      originalText: parsed.originalText.trim(),
+      translations: {
+        en: (parsed.translations.en || "").trim(),
+        kn: (parsed.translations.kn || "").trim(),
+        ta: (parsed.translations.ta || "").trim(),
+      },
+      confidenceScore: typeof parsed.confidenceScore === "number" ? parsed.confidenceScore : 95,
+    };
+  } catch (error) {
+    console.error(`Gemini Multimodal Translation Error (Page ${pageNumber}):`, error);
     return null;
   }
 }
