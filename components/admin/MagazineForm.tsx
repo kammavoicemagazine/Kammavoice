@@ -63,16 +63,24 @@ export default function MagazineForm({ magazine, mode }: MagazineFormProps) {
     fetchTranslations();
   }, [mode, magazine]);
 
-  /** Helper to render a PDF page to base64 */
+  /** Helper to render a PDF page to base64 with dynamic scaling to prevent Vercel 4.5MB payload limits */
   const renderPdfPageToBase64 = async (pdfDoc: any, pageNum: number): Promise<string> => {
     const page = await pdfDoc.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 1.5 }); // High-res scale for OCR
+    let viewport = page.getViewport({ scale: 1.0 });
+    
+    // Cap width at 1200px to ensure base64 JPEG stays well under Vercel's 4.5MB serverless limit
+    const maxDimension = 1200;
+    const scale = viewport.width > maxDimension ? maxDimension / viewport.width : 1.2;
+    viewport = page.getViewport({ scale });
+
     const canvas = document.createElement("canvas");
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const ctx = canvas.getContext("2d")!;
     await page.render({ canvasContext: ctx, viewport }).promise;
-    const base64 = canvas.toDataURL("image/jpeg", 0.85);
+    
+    // Use 0.78 JPEG quality for optimal balance between sharp OCR legibility and minimal payload size
+    const base64 = canvas.toDataURL("image/jpeg", 0.78);
     page.cleanup();
     return base64;
   };
