@@ -15,10 +15,18 @@ const firebaseConfig = {
 // Initialize Firebase (prevent re-initialization in development)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Force long-polling to prevent gRPC connection crashes during Next.js SSR
-export const db = getApps().length > 0 && app.name === "[DEFAULT]" 
-  ? getFirestore(app) 
-  : initializeFirestore(app, { experimentalForceLongPolling: true });
+// Force long-polling and auto-detection to prevent gRPC connection crashes during Next.js SSR / Vercel Serverless
+let firestoreInstance;
+try {
+  firestoreInstance = initializeFirestore(app, { 
+    experimentalForceLongPolling: true,
+    experimentalAutoDetectLongPolling: true 
+  });
+} catch (error) {
+  firestoreInstance = getFirestore(app);
+}
+
+export const db = firestoreInstance;
 export const auth = getAuth(app);
 
 export default app;

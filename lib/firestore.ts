@@ -439,12 +439,7 @@ export async function saveMagazinePageTranslation(
       ...data,
     };
     
-    const snap = await getDoc(pageRef);
-    if (snap.exists()) {
-      await updateDoc(pageRef, payload);
-    } else {
-      await setDoc(pageRef, payload);
-    }
+    await setDoc(pageRef, payload, { merge: true });
   } catch (error) {
     console.error(`Error saving translation for mag ${magazineId} page ${pageNumber}:`, error);
     throw error;
