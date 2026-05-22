@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import Providers from "@/components/providers/Providers";
+import CapacitorProvider from "@/components/CapacitorProvider";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
@@ -15,6 +16,15 @@ const playfair = Playfair_Display({
   subsets: ["latin"],
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#0A0A0A",
+};
 
 export const metadata: Metadata = {
   title: {
@@ -69,7 +79,9 @@ export default function RootLayout({
       className={`${inter.variable} ${playfair.variable} antialiased`}
     >
       <body className="min-h-screen flex flex-col bg-[#0A0A0A] text-[#FAFAFA]">
-        <Providers>{children}</Providers>
+        <Providers>
+          <CapacitorProvider>{children}</CapacitorProvider>
+        </Providers>
         <Analytics />
       </body>
     </html>
