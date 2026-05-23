@@ -14,6 +14,7 @@ import { getArticleBySlug, incrementViewCount, getArticles } from "@/lib/firesto
 import { formatDate, formatDateTelugu } from "@/lib/utils";
 import type { Article } from "@/lib/types";
 import NewsCard from "@/components/news/NewsCard";
+import { shareContent } from "@/lib/capacitor-init";
 
 export default function ArticlePage() {
   const params = useParams();
@@ -101,15 +102,7 @@ export default function ArticlePage() {
   }
 
   const handleShare = async () => {
-    if (navigator.share) {
-      await navigator.share({
-        title: article.title,
-        text: article.excerpt,
-        url: window.location.href,
-      });
-    } else {
-      await navigator.clipboard.writeText(window.location.href);
-    }
+    await shareContent(article.title, article.excerpt, window.location.href);
   };
 
   return (

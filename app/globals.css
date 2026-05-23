@@ -324,3 +324,27 @@ html {
   text-rendering: optimizeLegibility;
 }
 
+/* ── Native Safe Area Utilities ────────────────────────────────── */
+.pb-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ── Remove Browser Feel ────────────────────────────────────────── */
+/* Disable global text selection to match native behavior */
+body, html, * :not(input):not(textarea) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Hide scrollbars globally */
+* {
+  scrollbar-width: none;
+}
+::-webkit-scrollbar {
+  display: none;
+}
+
+

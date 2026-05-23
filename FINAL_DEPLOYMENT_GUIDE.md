@@ -1,6 +1,6 @@
 # Kamma Voice — Production Android & Vercel Deployment Guide
 
-This guide details the complete deployment process for the Kamma Voice platform, including the live Vercel web application and the native Android wrapper configuration.
+This guide details the complete deployment process for the Kamma Voice platform, including the live Vercel web application, the offline-first Service Worker, and the native Android wrapper configuration.
 
 ---
 
@@ -29,7 +29,7 @@ To deploy changes to the live URL:
 ```bash
 # Push changes to GitHub main branch to trigger Vercel deployment
 git add .
-git commit -m "chore: android app compilation fixes and native bridge optimizations"
+git commit -m "chore: native app shell upgrades, fcm integration, and service worker caching"
 git push origin main
 ```
 
@@ -64,7 +64,19 @@ Update the file in your Next.js project's `public/.well-known/assetlinks.json` t
 
 ---
 
-## 3. Automation Cron Jobs
+## 3. Offline Service Worker Caching
+
+We have integrated a Service Worker (`public/sw.js`) that automatically caches:
+- Homepage assets
+- Magazine covers and metadata
+- Scripts, Styles, and Cloudinary optimized images
+- Critical fonts
+
+When deploying to Vercel, the service worker is automatically compiled and registered scope-wide. WebView caches it on first launch, providing a fast, network-independent start.
+
+---
+
+## 4. Automation Cron Jobs
 
 The Kamma Voice platform contains background workers that run automatically. You must configure external cron triggers (like Vercel Cron or a third-party scheduler) to query the aggregation and social automation API endpoints.
 
@@ -79,10 +91,11 @@ The Kamma Voice platform contains background workers that run automatically. You
 
 ---
 
-## 4. WebView Custom Configurations
+## 5. WebView Custom Configurations
 
 Capacitor configures the WebView automatically, but we have injected custom optimizations in `android/app/src/main/AndroidManifest.xml` and `capacitor.config.ts`:
 
 1. **Hardware Acceleration**: Enabled natively (`android:hardwareAccelerated="true"`) to make magazine page-flip transitions run at a buttery 60 FPS.
 2. **Offline Resilience**: Built-in connectivity listener detects offline status and displays a premium ambient-glow retry interface instead of default webview browser errors.
 3. **No Cleartext Traffic**: Block all non-HTTPS requests (`android:usesCleartextTraffic="false"`) for robust security.
+4. **App Shell**: The persistent Bottom Navigation is enabled automatically when running inside the app context, giving it a native feel like Instagram or Inshorts.

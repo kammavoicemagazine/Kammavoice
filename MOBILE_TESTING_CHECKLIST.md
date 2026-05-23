@@ -1,62 +1,45 @@
-# Kamma Voice — Mobile App Testing Checklist
+# Kamma Voice — Premium Mobile App Testing Checklist
 
-This checklist contains all verification steps that must be executed to ensure the native Android shell and bridge behave flawlessly on physical devices and emulators.
-
----
-
-## 1. Offline Handling & Resilience
-* [ ] **Verify Flight Mode / Disconnect**: Turn off Wi-Fi/data. Open the app. Verify that the custom premium offline screen matching the dark luxury brand theme (#0A0A0A) appears instantly.
-* [ ] **Verify Reconnect Button**: Turn Wi-Fi/data back on. Click the "Retry Connection" button. Verify the app reloads and successfully mounts the live webview.
-* [ ] **No Default Browser Error**: Ensure that raw Chromium/system browser "No Internet Connection" or "DNS_PROBE_FINISHED_NO_INTERNET" screens never show.
+This checklist contains all verification steps that must be executed to ensure the native Android shell, bottom navigation app shell, service worker caching, and native plugins behave flawlessly on physical devices and emulators.
 
 ---
 
-## 2. Status Bar & UI Aesthetics
-* [ ] **Theme Uniformity**: Check that the status bar has a dark background (`#0A0A0A`) with light/white icons to prevent visual jarring against the dark luxury interface.
-* [ ] **Viewport Fit**: Verify that the Next.js header and contents do not clip beneath notched screens or status bars (ensured by `viewport-fit=cover` and CSS safe-area padding).
-* [ ] **Tap Highlight**: Tap on interactive list items or cards. Confirm that the default blue Android tap highlight is absent (`-webkit-tap-highlight-color: transparent` optimization).
+## 1. Cinematic Animated Splash Screen
+* [ ] **Intro Flow Validation**: Force close and relaunch the app. Verify that the client-side animated intro splash screen mounts immediately with a gold gradient brand logo (`KV`), slow-glow ambient pulsing, and loading text.
+* [ ] **Native Hand-off**: Verify that the native Android launch screen hides within `100ms`, passing control to the smooth client-side CSS/Framer-motion intro.
+* [ ] **Auto Dismiss**: Confirm that the intro fades out beautifully after exactly `2.5 seconds` with a smooth transition, revealing the Home screen.
 
 ---
 
-## 3. Back Button Navigation (Smart Exit)
-* [ ] **History Traversal**: Navigate into multiple articles. Press the hardware back button. Verify the app navigates back through the history stack one step at a time.
-* [ ] **Root Exit Toast**: Navigate to the homepage (root stack). Press the back button once. Verify that a custom toast message appears saying "Press back again to exit" and the app does not close.
-* [ ] **Double-Tap Exit**: Tap back again within 2 seconds of the toast message. Verify that the app exits cleanly.
+## 2. Persistent Bottom Navigation App Shell
+* [ ] **Native Bar Visibility**: Confirm that the Bottom Navigation Bar (Home, Magazines, News, Videos, Menu) is visible on mobile viewport sizes (< 1024px) and native platform wrappers.
+* [ ] **Tab Navigation Transitions**: Tap each tab. Verify that the active tab indicator line glows gold and animates smoothly to the clicked tab position.
+* [ ] **Haptic Feedbacks**: Verify that tapping tabs triggers a light native haptic vibration on real Android devices.
+* [ ] **Bottom Sheet Drawer**: Tap the "Menu" tab. Verify that a premium, gesture-friendly dark luxury modal slides up from the bottom with options for About Us, Privacy, and Admin Dashboard. Verify tapping backdrop closes it.
 
 ---
 
-## 4. Pull-to-Refresh Gesture
-* [ ] **Top Scroll Behavior**: Scroll to the absolute top of the page.
-* [ ] **Trigger Reload**: Pull downward dynamically. Verify that the native reload is triggered, updating the feed with the latest content.
+## 3. Offline Service Worker Caching
+* [ ] **Offline Loading**: Load the app with internet active, then enable Flight Mode. Reload the app. Verify that the homepage, cached scripts, and CSS load from the Service Worker cache.
+* [ ] **Native Offline Alert Screen**: Disconnect internet and navigate to an uncached path. Verify that the custom premium offline screen with the gold-glowing retry button appears instead of Chromium's default browser errors.
+* [ ] **Cache Reconnection**: Re-enable Wi-Fi/data. Click "Retry Connection". Verify that the app refreshes, queries Firestore, and restores normal functionality.
 
 ---
 
-## 5. Magazine Immersive Reader
-* [ ] **Fullscreen Immersive**: Open a magazine issue. Verify that the status bar hides automatically to enable fullscreen immersive reading.
-* [ ] **Page Flip Physics**: Flip pages in the magazine. Verify that hardware acceleration (`android:hardwareAccelerated="true"`) is active and page-flipping transitions feel fluid.
-* [ ] **Translation Overlays**: Toggle AI translation overlay. Verify that translations align correctly with the underlying columns and are responsive to zoom/pan.
-* [ ] **Status Bar Restore**: Close the magazine reader. Verify that the status bar re-appears with the dark luxury branding.
+## 4. Native Plugins Verification
+* [ ] **Native Sharing Dialog**: Open any news article page. Tap the share icon. Verify that the native Android Share sheet pops up displaying the article title, excerpt, and URL.
+* [ ] **Push Notification Permissions**: Launch the app for the first time. Confirm that the native Android push notification permission prompt is displayed.
+* [ ] **FCM Token Registration**: Verify that granting permission registers the device with Firebase Cloud Messaging, prints the FCM token in logs, and saves the token securely into the Firestore `pushTokens` collection.
 
 ---
 
-## 6. Deep Linking (App Links)
-Verify that deep links open the native app directly instead of launching the mobile browser. Run these commands using ADB:
-
-### Verify News Article Link:
-```bash
-adb shell am start -W -a android.intent.action.VIEW -d "https://kammavoicemmag.vercel.app/news/sample-slug" com.kammavoice.app
-```
-* **Expected Result**: The Kamma Voice app launches and opens the news article details page directly.
-
-### Verify Magazine Issue Link:
-```bash
-adb shell am start -W -a android.intent.action.VIEW -d "https://kammavoicemmag.vercel.app/magazine/sample-id" com.kammavoice.app
-```
-* **Expected Result**: The Kamma Voice app launches and opens the magazine reader view directly.
+## 5. Viewport Fit & Safe Areas
+* [ ] **Camera Cutouts / Notches**: Verify that neither the top header nor the bottom navigation bar overlaps with camera notches, status indicators, or system navigation bars.
+* [ ] **Tap Highlight Override**: Tap elements rapidly. Confirm that the default blue webview highlight is disabled (`-webkit-tap-highlight-color: transparent`).
+* [ ] **Text Selection Prevention**: Attempt to long-press text on lists, buttons, or navigation tabs. Verify that text selection is disabled globally to retain a native app feel.
 
 ---
 
-## 7. Versioning & Package Compliance
-* [ ] **Unique Identifier**: Check that the build namespace is `com.kammavoice.app` (as specified in Gradle and AndroidManifest).
-* [ ] **Version Code Alignment**: Verify `versionCode` in `build.gradle` is incremented.
-* [ ] **ProGuard Minification**: Build the release variant and check that the generated `.aab` file size is minimized and optimized.
+## 6. Magazine Flipbook & Video players
+* [ ] **Frame Rate Performance**: View a magazine issue. Verify that the page-flip animation runs at a stable 60 FPS under native hardware acceleration.
+* [ ] **Immersive Viewport**: Open a magazine. Check that the Android status bar auto-hides for fullscreen reading, and re-appears when closing the magazine reader.

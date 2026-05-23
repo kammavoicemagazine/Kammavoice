@@ -4,7 +4,18 @@ This guide describes how to compile, sign, verify, and publish the Kamma Voice A
 
 ---
 
-## 1. Release Keystore Generation
+## 1. Firebase Cloud Messaging Setup (Push Notifications)
+
+To enable breaking news alerts and notifications in the production Android app:
+
+1. Create a project in the [Firebase Console](https://console.firebase.google.com/).
+2. Add an Android app with package name `com.kammavoice.app`.
+3. Download the generated `google-services.json` file.
+4. Place it in `android/app/google-services.json` (this file is referenced inside Gradle builds and will activate the FCM native plugin automatically).
+
+---
+
+## 2. Release Keystore Generation
 
 You must sign your application with a release keystore before uploading it to the Google Play Console. If you do not have one, generate it using the JDK `keytool` command.
 
@@ -23,14 +34,16 @@ keytool -genkeypair -v -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 
 
 ---
 
-## 2. Configured Build Environment (`local.properties`)
+## 3. Configured Build Environment (`local.properties`)
 
 To ensure gradle can automatically compile and sign the release build without hardcoding credentials in git:
 
 1. Create a file named `android/local.properties` (this is ignored in `.gitignore`).
-2. Add the following lines to define the signing credentials:
+2. Add the following lines to define the signing credentials and Android SDK location:
 
 ```properties
+sdk.dir=C\:\\Users\\your_user\\AppData\\Local\\Android\\Sdk
+
 # Absolute path to the keystore file (use forward slashes for Windows paths)
 RELEASE_STORE_FILE=C:/Users/your_user/certs/kammavoice-release.keystore
 RELEASE_STORE_PASSWORD=SECURE_STORE_PASSWORD
@@ -42,7 +55,7 @@ When you run the build command, Gradle will read these values and automatically 
 
 ---
 
-## 3. Compiling the Production App Bundle (.aab)
+## 4. Compiling the Production App Bundle (.aab)
 
 Google Play requires the **Android App Bundle (.aab)** format instead of APKs for release publishing.
 
@@ -60,7 +73,7 @@ Once completed, the release-ready signed bundle will be generated at:
 
 ---
 
-## 4. Google Play Console Listing Configuration
+## 5. Google Play Console Listing Configuration
 
 ### 1. Store Presence & Setup
 - **App Name**: Kamma Voice
@@ -68,6 +81,7 @@ Once completed, the release-ready signed bundle will be generated at:
 - **Free/Paid**: Free
 - **Category**: News & Magazines
 - **Content Rating**: Everyone
+- **Themed Icons**: Supported natively (Monochrome adaptive launcher icon configuration enabled for Android 13+).
 
 ### 2. Privacy Policy Compliance
 You must supply a valid URL to the Privacy Policy. We have built a compliant public privacy policy route:
@@ -75,14 +89,14 @@ You must supply a valid URL to the Privacy Policy. We have built a compliant pub
 
 ### 3. Store Listing Assets
 Prepare the following graphic assets to complete the store page:
-* **App Icon**: 512x512 PNG, Max 1MB (must use transparent or color-coordinated background).
+* **App Icon**: 512x512 PNG, Max 1MB.
 * **Feature Graphic**: 1024x500 PNG, Max 1500KB (luxurious gold and dark accents branding recommended).
 * **Phone Screenshots**: Minimum 2 screenshots, 16:9 or 9:16 aspect ratio, between 320px and 3840px per side.
 * **Tablet Screenshots**: Optional but recommended for magazine reader visibility on larger screens.
 
 ---
 
-## 5. Deployment Pipelines (Play Store Tracks)
+## 6. Deployment Pipelines (Play Store Tracks)
 
 It is highly recommended to roll out the app through the following staging tracks in the Play Console:
 

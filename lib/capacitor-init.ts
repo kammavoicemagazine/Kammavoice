@@ -19,6 +19,12 @@ import { App as CapApp } from "@capacitor/app";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style as StatusBarStyle } from "@capacitor/status-bar";
 import { Browser } from "@capacitor/browser";
+import { Share } from "@capacitor/share";
+import {
+  requestPushPermission,
+  registerForPushNotifications,
+  onNotificationTapped
+} from "./push-notifications";
 
 // ─── Platform Detection ──────────────────────────────────────────────
 export const isNativePlatform = Capacitor.isNativePlatform();
@@ -49,6 +55,21 @@ export async function initCapacitor(): Promise<void> {
   initSecurityGuards();
   initPerformanceMonitoring();
   initDeepLinks();
+
+  // Push notifications setup
+  try {
+    const granted = await requestPushPermission();
+    if (granted) {
+      await registerForPushNotifications();
+    }
+    onNotificationTapped((payload) => {
+      if (payload.deepLink) {
+        window.location.href = payload.deepLink;
+      }
+    });
+  } catch (err) {
+    console.warn("[KV-App] Push notifications registration warning:", err);
+  }
 
   console.log(`[KV-App] Capacitor initialized v${APP_VERSION} (build ${APP_BUILD})`);
 }
@@ -170,10 +191,10 @@ async function initSplashScreen(): Promise<void> {
 }
 
 async function hideSplash(): Promise<void> {
-  // Small delay to ensure first paint is rendered
-  await new Promise((r) => setTimeout(r, 800));
+  // Transfer immediately to client-side animated splash
+  await new Promise((r) => setTimeout(r, 100));
   try {
-    await SplashScreen.hide({ fadeOutDuration: 400 });
+    await SplashScreen.hide({ fadeOutDuration: 300 });
   } catch (err) {
     console.warn("[KV-App] Splash hide failed:", err);
   }
@@ -341,10 +362,6 @@ export function getAppVersionInfo(): AppVersionInfo {
   };
 }
 
-/**
- * Check for app updates against a remote endpoint.
- * Configure the endpoint URL when ready to activate.
- */
 export async function checkForUpdate(): Promise<AppVersionInfo> {
   const info = getAppVersionInfo();
 
@@ -362,3 +379,37 @@ export async function checkForUpdate(): Promise<AppVersionInfo> {
 
   return info;
 }
+
+/**
+ * Share content natively via Android Share Sheet or Web Share API.
+ */
+export async function shareContent(title: string, text: string, url: string): Promise<void> {
+  if (isNativePlatform) {
+    try {
+      await Share.share({
+        title,
+        text,
+        url,
+        dialogTitle: "Share this article",
+      });
+    } catch (err) {
+      console.warn("[KV-App] Share failed or cancelled:", err);
+    }
+  } else {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+      } catch (err) {
+        console.warn("[WebShare] Failed:", err);
+      }
+    } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(url);
+        alert("Link copied to clipboard!");
+      } catch (err) {
+        console.error("[WebShare] Clipboard copy failed:", err);
+      }
+    }
+  }
+}
+

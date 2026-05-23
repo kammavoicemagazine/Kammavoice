@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import Providers from "@/components/providers/Providers";
 import CapacitorProvider from "@/components/CapacitorProvider";
+import BottomNavigation from "@/components/layout/BottomNavigation";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
@@ -80,7 +81,10 @@ export default function RootLayout({
     >
       <body className="min-h-screen flex flex-col bg-[#0A0A0A] text-[#FAFAFA]">
         <Providers>
-          <CapacitorProvider>{children}</CapacitorProvider>
+          <CapacitorProvider>
+            <div className="flex-1 pb-20 lg:pb-0">{children}</div>
+            <BottomNavigation />
+          </CapacitorProvider>
         </Providers>
         <Analytics />
       </body>

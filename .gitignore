@@ -49,3 +49,7 @@ android/app/release/
 *.keystore
 *.jks
 *.aab
+.idea/
+android/.idea/
+*.iml
+android/**/*.iml
