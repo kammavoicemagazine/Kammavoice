@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { initCapacitor, onOfflineChange, enablePullToRefresh, isNativePlatform } from "@/lib/capacitor-init";
+import { initOfflineDownloads } from "@/lib/offline-magazine";
 import { motion, AnimatePresence } from "framer-motion";
 import OfflineScreen from "@/components/OfflineScreen";
+import { useRouter, usePathname } from "next/navigation";
+import { useUIStore } from "@/lib/store/ui-store";
+import { motionCurves, motionSprings, useMotionProfile } from "@/lib/motion";
 
 /**
  * CapacitorProvider — wraps the app to initialize all native behaviors,
@@ -13,19 +17,47 @@ export default function CapacitorProvider({ children }: { children: React.ReactN
   const [offline, setOffline] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
+  const isFirstCheck = useRef(true);
+  const motionProfile = useMotionProfile();
 
   useEffect(() => {
     // Initialize Capacitor native behaviors
     initCapacitor()
-      .then(() => setInitialized(true))
+      .then(() => {
+        setInitialized(true);
+        initOfflineDownloads();
+      })
       .catch((err) => {
         console.warn("[KV-App] Capacitor init warning:", err);
         setInitialized(true);
+        initOfflineDownloads();
       });
 
     // Subscribe to offline state changes
     const unsubscribe = onOfflineChange((isOffline) => {
       setOffline(isOffline);
+      if (isFirstCheck.current) {
+        isFirstCheck.current = false;
+        return;
+      }
+      const store = useUIStore.getState();
+      if (isOffline) {
+        store.showAlert({
+          title: "Connection Lost",
+          subtitle: "Bypassing to offline downloads.",
+          type: "error",
+          duration: 4000
+        });
+      } else {
+        store.showAlert({
+          title: "Back Online",
+          subtitle: "Synchronizing media feeds...",
+          type: "success",
+          duration: 4000
+        });
+      }
     });
 
     // Enable pull-to-refresh on the root document
@@ -40,10 +72,10 @@ export default function CapacitorProvider({ children }: { children: React.ReactN
         .catch((err) => console.warn("[KV-SW] Service Worker registration failed:", err));
     }
 
-    // Dismiss client splash after 2.5 seconds
+    // Dismiss client splash after 2.8 seconds (cinematic flow)
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 2500);
+    }, 2800);
 
     return () => {
       unsubscribe();
@@ -51,8 +83,9 @@ export default function CapacitorProvider({ children }: { children: React.ReactN
     };
   }, []);
 
-  // Show offline screen when no internet and not in intro splash
-  if (offline && !showSplash) {
+  // Show offline screen when no internet, not in splash, and NOT browsing the downloads page
+  const isBrowsingOfflineContent = pathname === "/downloads" || pathname.startsWith("/magazine/");
+  if (offline && !showSplash && !isBrowsingOfflineContent) {
     return (
       <OfflineScreen
         onRetry={() => {
@@ -72,35 +105,43 @@ export default function CapacitorProvider({ children }: { children: React.ReactN
           <motion.div
             key="splash"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.6, ease: "easeInOut" } }}
+            exit={{ 
+              y: motionProfile.reduce ? 0 : "-8%", 
+              opacity: 0,
+              transition: { duration: motionProfile.reduce ? 0.2 : 0.58, ease: motionCurves.cinematic } 
+            }}
             className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#0A0A0A] overflow-hidden"
           >
-            {/* Animated Ambient Gold Glow Background */}
+            {/* Ambient Radial Golden Glow */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: [0.15, 0.35, 0.15], scale: [0.9, 1.15, 0.9] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute w-[350px] h-[350px] bg-[#C9A84C]/10 blur-[100px] rounded-full"
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: motionProfile.reduce ? 0.18 : [0.12, 0.28, 0.12], scale: motionProfile.reduce ? 1 : [0.86, 1.12, 0.86] }}
+              transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute w-[360px] h-[360px] bg-[#C9A84C]/10 blur-[96px] rounded-full pointer-events-none hw-accelerated"
             />
+            <div className="absolute inset-x-8 top-1/2 h-px bg-gradient-to-r from-transparent via-gold/20 to-transparent" />
 
             {/* Branded elements */}
             <div className="relative flex flex-col items-center z-10">
               {/* Logo block with initial bounce and ongoing pulse */}
               <motion.div
-                initial={{ scale: 0.8, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 120, damping: 12, delay: 0.1 }}
-                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#C9A84C] to-[#9E8236] flex items-center justify-center text-[#0A0A0A] font-bold text-3xl font-[family-name:var(--font-playfair)] shadow-[0_8px_32px_rgba(201,168,76,0.3)] mb-6"
+                initial={{ scale: 0.82, opacity: 0, y: 12 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                transition={{ ...motionSprings.soft, delay: 0.15 }}
+                className="w-24 h-24 rounded-[28px] bg-gradient-to-br from-[#C9A84C] via-[#E2C779] to-[#9E8236] flex items-center justify-center text-[#0A0A0A] font-extrabold text-4xl font-[family-name:var(--font-playfair)] mb-6 border border-white/10 gold-glow-soft hw-accelerated"
+                style={{
+                  textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                }}
               >
                 KV
               </motion.div>
 
               {/* Title brand */}
               <motion.h1
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                className="text-2xl font-bold tracking-widest bg-gradient-to-r from-[#C9A84C] via-[#E2C779] to-[#C9A84C] bg-clip-text text-transparent font-[family-name:var(--font-playfair)]"
+                transition={{ duration: 0.52, ease: motionCurves.cinematic, delay: 0.42 }}
+                className="text-3xl font-extrabold tracking-[0.2em] bg-gradient-to-r from-[#C9A84C] via-[#F4E3A4] to-[#C9A84C] bg-clip-text text-transparent font-[family-name:var(--font-playfair)]"
               >
                 KAMMA VOICE
               </motion.h1>
@@ -108,19 +149,25 @@ export default function CapacitorProvider({ children }: { children: React.ReactN
               {/* Subtitle brand */}
               <motion.p
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 0.6 }}
-                transition={{ duration: 0.6, delay: 0.6 }}
-                className="text-[10px] text-gray-400 tracking-widest uppercase mt-1.5"
+                animate={{ opacity: 0.5 }}
+                transition={{ duration: 0.8, delay: 0.8 }}
+                className="text-xs text-gray-400 tracking-[0.3em] uppercase mt-2.5 font-semibold"
               >
                 కమ్మ వాయిస్
               </motion.p>
             </div>
 
             {/* Lower indicator spinner */}
-            <div className="absolute bottom-16 flex flex-col items-center">
-              <div className="w-5 h-5 border-2 border-[#C9A84C]/20 border-t-[#C9A84C] rounded-full animate-spin mb-3" />
-              <span className="text-[9px] text-gray-500 tracking-widest uppercase font-semibold">
-                Initializing Experience
+            <div className="absolute bottom-20 flex flex-col items-center pointer-events-none">
+              <div className="w-28 h-1 rounded-full bg-white/5 overflow-hidden mb-4">
+                <motion.div
+                  className="h-full w-1/2 rounded-full bg-gradient-to-r from-transparent via-gold to-transparent"
+                  animate={{ x: ["-100%", "220%"] }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                />
+              </div>
+              <span className="text-[10px] text-gray-500 tracking-[0.2em] uppercase font-bold">
+                Cinematic Experience
               </span>
             </div>
           </motion.div>

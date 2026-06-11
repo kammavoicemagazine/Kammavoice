@@ -1,22 +1,31 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { BookOpen, Calendar, ArrowRight } from "lucide-react";
+import { BookOpen, Calendar, ArrowRight, Download, Check } from "lucide-react";
 import type { Magazine } from "@/lib/types";
+import { useUIStore } from "@/lib/store/ui-store";
+import { downloadMagazineOffline } from "@/lib/offline-magazine";
+import { triggerLightTap } from "@/lib/haptic-utils";
 
 export default function MagazineHero({ magazine }: { magazine: Magazine }) {
+  const router = useRouter();
+  const downloadedMagazines = useUIStore((state) => state.downloadedMagazines);
+  const downloaded = downloadedMagazines.find((m) => m.id === magazine.id);
+  const isDownloaded = !!downloaded;
+  const isUpdateAvailable = downloaded && downloaded.pdfUrl !== magazine.pdfUrl;
+  const currentDownload = useUIStore((state) => state.downloads[magazine.id]);
+  const isDownloading = currentDownload?.status === "downloading";
+
   return (
     <section className="relative w-full min-h-[80vh] min-h-[80dvh] lg:h-[85vh] flex items-center bg-[#0A0A0A] overflow-hidden">
       {/* Background Blur */}
       <div className="absolute inset-0 z-0">
-        <Image
+        <img
           src={magazine.coverImageUrl}
           alt=""
-          fill
-          className="object-cover opacity-20 blur-3xl scale-110"
-          priority
+          className="object-cover opacity-20 blur-3xl scale-110 w-full h-full"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/80 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/80 to-transparent lg:via-transparent" />
@@ -62,13 +71,65 @@ export default function MagazineHero({ magazine }: { magazine: Magazine }) {
               )}
             </div>
 
-            <Link
-              href={`/magazine/${magazine.id}`}
-              className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 rounded-full bg-gold text-[#0A0A0A] font-bold text-base sm:text-lg hover:bg-gold-light transition-all hover:scale-105 active:scale-95 group min-h-[48px]"
-            >
-              Read Now
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center lg:justify-start w-full">
+              <Link
+                href={`/magazine/${magazine.id}`}
+                className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 rounded-full bg-gold text-[#0A0A0A] font-bold text-base sm:text-lg hover:bg-gold-light transition-all hover:scale-105 active:scale-95 group min-h-[48px] w-full sm:w-auto"
+              >
+                Read Now
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              
+              <button
+                onClick={() => {
+                  triggerLightTap();
+                  if (isDownloaded && !isUpdateAvailable) {
+                    router.push("/downloads");
+                  } else {
+                    downloadMagazineOffline(
+                      magazine.id,
+                      magazine.pdfUrl,
+                      magazine.title,
+                      magazine.coverImageUrl,
+                      magazine.volume,
+                      magazine.issueDate
+                    );
+                  }
+                }}
+                disabled={isDownloading}
+                className={`inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 rounded-full border font-bold text-base sm:text-lg transition-all hover:scale-105 active:scale-95 min-h-[48px] w-full sm:w-auto cursor-pointer ${
+                  isDownloading
+                    ? "border-gold/30 bg-gold/10 text-gold"
+                  : isUpdateAvailable
+                    ? "border-gold/50 bg-gold/10 text-gold animate-pulse shadow-[0_0_12px_rgba(201,168,76,0.25)]"
+                  : isDownloaded
+                    ? "border-green-500/30 bg-green-500/10 text-green-400"
+                    : "border-white/10 bg-white/5 text-white hover:bg-white/10"
+                }`}
+              >
+                {isDownloading ? (
+                  <>
+                    <span className="h-2.5 w-2.5 rounded-full bg-gold live-pulse" />
+                    Downloading...
+                  </>
+                ) : isUpdateAvailable ? (
+                  <>
+                    <Download className="w-5 h-5 animate-bounce" />
+                    Update Edition
+                  </>
+                ) : isDownloaded ? (
+                  <>
+                    <Check className="w-5 h-5" />
+                    Offline Ready
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-5 h-5" />
+                    Download PDF
+                  </>
+                )}
+              </button>
+            </div>
           </motion.div>
 
           {/* Cover Image */}
@@ -80,13 +141,10 @@ export default function MagazineHero({ magazine }: { magazine: Magazine }) {
           >
             <Link href={`/magazine/${magazine.id}`} className="block relative group">
               <div className="relative aspect-[3/4] w-full rounded-sm overflow-hidden shadow-2xl transition-transform duration-500 group-hover:scale-[1.02] group-hover:rotate-1">
-                <Image
+                <img
                   src={magazine.coverImageUrl}
                   alt={magazine.title}
-                  fill
-                  className="object-cover"
-                  priority
-                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-cover w-full h-full"
                 />
                 
                 {/* Shine effect */}

@@ -6,11 +6,13 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import type { Magazine } from "@/lib/types";
+import { useUIStore } from "@/lib/store/ui-store";
 
 export default function MagazineCarousel({ magazines }: { magazines: Magazine[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const downloadedMagazines = useUIStore((state) => state.downloadedMagazines);
 
   if (!magazines || magazines.length === 0) return null;
 
@@ -71,30 +73,45 @@ export default function MagazineCarousel({ magazines }: { magazines: Magazine[] 
           className="flex overflow-x-auto gap-6 sm:gap-8 pb-8 snap-x snap-mandatory hide-scrollbar"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          {magazines.map((magazine, i) => (
-            <motion.div
-              key={magazine.id}
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="min-w-[200px] w-[200px] sm:min-w-[240px] sm:w-[240px] snap-start flex-shrink-0 group"
-            >
-              <Link href={`/magazine/${magazine.id}`} className="block">
-                <div className="relative aspect-[3/4] w-full rounded-sm overflow-hidden shadow-lg transition-transform duration-300 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-gold/10">
-                  <Image
-                    src={magazine.coverImageUrl}
-                    alt={magazine.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 200px, 240px"
-                  />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                    <span className="flex items-center gap-2 text-white font-medium bg-gold/90 px-4 py-2 rounded-full transform translate-y-4 group-hover:translate-y-0 transition-transform">
-                      Read <ArrowRight className="w-4 h-4" />
-                    </span>
+          {magazines.map((magazine, i) => {
+            const downloaded = downloadedMagazines.find((m) => m.id === magazine.id);
+            const isDownloaded = !!downloaded;
+            const isUpdateAvailable = downloaded && downloaded.pdfUrl !== magazine.pdfUrl;
+
+            return (
+              <motion.div
+                key={magazine.id}
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="min-w-[200px] w-[200px] sm:min-w-[240px] sm:w-[240px] snap-start flex-shrink-0 group"
+              >
+                <Link href={`/magazine/${magazine.id}`} className="block">
+                  <div className="relative aspect-[3/4] w-full rounded-sm overflow-hidden shadow-lg transition-transform duration-300 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-gold/10 bg-black border border-white/5">
+                    {isDownloaded && (
+                      <div className={`absolute top-2.5 left-2.5 z-10 px-2 py-0.5 rounded-full text-[8px] font-extrabold tracking-wider uppercase text-black shadow-md ${
+                        isUpdateAvailable 
+                          ? "bg-gold border border-gold-light/20 animate-pulse" 
+                          : "bg-green-500 border border-green-400/20"
+                      }`}>
+                        {isUpdateAvailable ? "Update Available" : "Offline Ready"}
+                      </div>
+                    )}
+                    <Image
+                      src={magazine.coverImageUrl}
+                      alt={magazine.title}
+                      fill
+                      className="object-cover animate-fade-in"
+                      sizes="(max-width: 768px) 200px, 240px"
+                      unoptimized
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                      <span className="flex items-center gap-2 text-white font-medium bg-gold/90 px-4 py-2 rounded-full transform translate-y-4 group-hover:translate-y-0 transition-transform">
+                        Read <ArrowRight className="w-4 h-4" />
+                      </span>
+                    </div>
                   </div>
-                </div>
                 <div className="mt-4 text-center">
                   <p className="text-sm font-semibold text-foreground truncate group-hover:text-gold transition-colors">
                     {magazine.title}
@@ -105,7 +122,8 @@ export default function MagazineCarousel({ magazines }: { magazines: Magazine[] 
                 </div>
               </Link>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
       </div>
       

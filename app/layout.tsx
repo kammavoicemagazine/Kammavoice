@@ -3,6 +3,9 @@ import { Inter, Playfair_Display } from "next/font/google";
 import Providers from "@/components/providers/Providers";
 import CapacitorProvider from "@/components/CapacitorProvider";
 import BottomNavigation from "@/components/layout/BottomNavigation";
+import DynamicIsland from "@/components/layout/DynamicIsland";
+import PageAnimatePresence from "@/components/providers/PageAnimatePresence";
+import PullToRefresh from "@/components/ui/PullToRefresh";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
@@ -79,10 +82,15 @@ export default function RootLayout({
       lang="te"
       className={`${inter.variable} ${playfair.variable} antialiased`}
     >
-      <body className="min-h-screen flex flex-col bg-[#0A0A0A] text-[#FAFAFA]">
+      <body className="min-h-screen flex flex-col bg-[#0A0A0A] text-[#FAFAFA] antialiased">
         <Providers>
           <CapacitorProvider>
-            <div className="flex-1 pb-20 lg:pb-0">{children}</div>
+            <DynamicIsland />
+            <div className="flex-1 pb-24 lg:pb-0 flex flex-col">
+              <PullToRefresh>
+                <PageAnimatePresence>{children}</PageAnimatePresence>
+              </PullToRefresh>
+            </div>
             <BottomNavigation />
           </CapacitorProvider>
         </Providers>

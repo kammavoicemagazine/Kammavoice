@@ -6,7 +6,7 @@ import Footer from "@/components/layout/Footer";
 import MagazineArchive from "@/components/home/MagazineArchive";
 import { getMagazines } from "@/lib/firestore";
 import type { Magazine } from "@/lib/types";
-import { Loader2 } from "lucide-react";
+import { MagazineCardSkeleton } from "@/components/ui/skeleton";
 
 export default function MagazinesPage() {
   const [magazines, setMagazines] = useState<Magazine[]>([]);
@@ -78,8 +78,10 @@ export default function MagazinesPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="w-8 h-8 text-gold animate-spin" />
+          <div className="max-w-7xl mx-auto px-4 py-14 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <MagazineCardSkeleton key={index} />
+            ))}
           </div>
         ) : filteredMagazines.length > 0 ? (
           <MagazineArchive magazines={filteredMagazines} />

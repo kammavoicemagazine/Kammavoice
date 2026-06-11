@@ -36,7 +36,7 @@ const SOCIALS = [
 
 export default function Footer() {
   return (
-    <footer className="bg-surface border-t border-border-subtle">
+    <footer className="bg-surface border-t border-border-subtle hidden lg:block">
       {/* Newsletter Bar */}
       <div className="border-b border-border-subtle">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

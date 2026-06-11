@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { getMagazinePageTranslation } from "@/lib/firestore";
 import { getTTSProvider } from "@/lib/tts";
 import type { MagazinePageTranslation } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ─── PDF.js Worker ─────────────────────────────────────────────────
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -137,7 +138,7 @@ const FlipPage = forwardRef<HTMLDivElement, FlipPageProps>(
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-[#151515]">
-            <div className="w-8 h-8 rounded-full border-2 border-gold/30 border-t-gold animate-spin mb-3" />
+            <Skeleton className="w-12 h-1.5 rounded-full mb-3" variant="gold" />
             <span className="text-xs text-[#555] font-medium">
               Page {pageNumber}
             </span>
@@ -787,8 +788,8 @@ export default function FlipbookReader({ url, title, magazineId }: FlipbookReade
         {/* Progress bar */}
         <div className="w-64 h-1 bg-[#1A1A1A] rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-gold-dark via-gold to-gold-light rounded-full transition-all duration-300"
-            style={{ width: `${loadProgress}%` }}
+            className="h-full origin-left bg-gradient-to-r from-gold-dark via-gold to-gold-light rounded-full transition-transform duration-300 progress-gold"
+            style={{ transform: `scaleX(${loadProgress / 100})` }}
           />
         </div>
         <span className="text-xs text-[#555] mt-2 tabular-nums">{loadProgress}%</span>
@@ -1127,7 +1128,7 @@ export default function FlipbookReader({ url, title, magazineId }: FlipbookReade
         {/* Background render progress */}
         {loadProgress < 100 && (
           <div className="flex items-center justify-center gap-2 mt-2">
-            <Loader2 className="w-3 h-3 text-gold/40 animate-spin" />
+            <Skeleton className="w-3 h-3 rounded-full" variant="gold" />
             <span className="text-[10px] text-[#555] tabular-nums">
               Rendering pages... {loadProgress}%
             </span>

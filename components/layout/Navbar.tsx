@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Search, ChevronRight } from "lucide-react";
+import { isNativePlatform } from "@/lib/capacitor-init";
 
 const NAV_LINKS = [
   { href: "/", label: "Home", labelTe: "హోమ్" },
@@ -81,14 +82,16 @@ export default function Navbar() {
               </button>
 
               {/* Mobile Menu Toggle */}
-              <button
-                onClick={() => setIsMobileOpen(!isMobileOpen)}
-                className="lg:hidden w-11 h-11 flex items-center justify-center rounded-lg text-muted hover:text-gold hover:bg-surface-light transition-all cursor-pointer"
-                aria-label="Toggle menu"
-                id="mobile-menu-toggle"
-              >
-                {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
+              {!isNativePlatform && (
+                <button
+                  onClick={() => setIsMobileOpen(!isMobileOpen)}
+                  className="lg:hidden w-11 h-11 flex items-center justify-center rounded-lg text-muted hover:text-gold hover:bg-surface-light transition-all cursor-pointer"
+                  aria-label="Toggle menu"
+                  id="mobile-menu-toggle"
+                >
+                  {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
+              )}
             </div>
           </div>
 

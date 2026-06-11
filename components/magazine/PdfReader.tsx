@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Loader2, Maximize } from "lucide-react";
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import 'react-pdf/dist/Page/TextLayer.css';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 
@@ -137,7 +138,7 @@ export default function PdfReader({ url, title }: PdfReaderProps) {
             onLoadSuccess={onDocumentLoadSuccess}
             loading={
               <div className="flex flex-col items-center text-gold gap-4">
-                <Loader2 className="w-10 h-10 animate-spin" />
+                <Skeleton className="w-40 h-1.5 rounded-full" variant="gold" />
                 <p className="font-[family-name:var(--font-playfair)] text-lg">Loading Magazine...</p>
               </div>
             }

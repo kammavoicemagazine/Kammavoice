@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Download } from "lucide-react";
 
 interface OfflineScreenProps {
   onRetry: () => void;
@@ -13,6 +15,7 @@ interface OfflineScreenProps {
 export default function OfflineScreen({ onRetry }: OfflineScreenProps) {
   const [retrying, setRetrying] = useState(false);
   const [pulseKey, setPulseKey] = useState(0);
+  const router = useRouter();
 
   const handleRetry = async () => {
     setRetrying(true);
@@ -30,7 +33,7 @@ export default function OfflineScreen({ onRetry }: OfflineScreenProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[99999] flex flex-col items-center justify-center px-8"
+      className="fixed inset-0 z-[99999] flex flex-col items-center justify-center px-8 animate-fade-in"
       style={{
         background: "linear-gradient(180deg, #0A0A0A 0%, #111111 50%, #0A0A0A 100%)",
       }}
@@ -47,7 +50,7 @@ export default function OfflineScreen({ onRetry }: OfflineScreenProps) {
       {/* WiFi-off icon */}
       <div className="relative mb-8">
         <div
-          className="w-24 h-24 rounded-3xl flex items-center justify-center"
+          className="w-24 h-24 rounded-3xl flex items-center justify-center animate-pulse"
           style={{
             background: "linear-gradient(135deg, rgba(201, 168, 76, 0.15) 0%, rgba(201, 168, 76, 0.05) 100%)",
             border: "1px solid rgba(201, 168, 76, 0.2)",
@@ -90,42 +93,54 @@ export default function OfflineScreen({ onRetry }: OfflineScreenProps) {
 
       {/* Description */}
       <p
-        className="text-center mb-10 max-w-xs leading-relaxed"
+        className="text-center mb-8 max-w-xs leading-relaxed font-medium"
         style={{
           color: "rgba(255, 255, 255, 0.45)",
           fontSize: "14px",
           lineHeight: "1.6",
         }}
       >
-        Please check your internet connection and try again. Kamma Voice requires an active network to deliver live content.
+        Please check your internet connection. You can still read any of your downloaded magazines.
       </p>
 
-      {/* Retry button */}
-      <button
-        onClick={handleRetry}
-        disabled={retrying}
-        className="relative overflow-hidden px-8 py-3.5 rounded-2xl font-bold text-sm transition-all active:scale-95 disabled:opacity-70"
-        style={{
-          background: retrying
-            ? "rgba(201, 168, 76, 0.15)"
-            : "linear-gradient(135deg, #C9A84C 0%, #B8973F 100%)",
-          color: retrying ? "#C9A84C" : "#0A0A0A",
-          border: retrying ? "1px solid rgba(201, 168, 76, 0.3)" : "none",
-          boxShadow: retrying ? "none" : "0 4px 24px rgba(201, 168, 76, 0.3)",
-          minWidth: "180px",
-        }}
-      >
-        {retrying ? (
-          <span className="flex items-center justify-center gap-2">
-            <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" />
-            </svg>
-            Reconnecting...
-          </span>
-        ) : (
-          "Try Again"
-        )}
-      </button>
+      <div className="flex flex-col gap-3 w-full items-center">
+        {/* Retry button */}
+        <button
+          onClick={handleRetry}
+          disabled={retrying}
+          className="relative overflow-hidden px-8 py-3.5 rounded-2xl font-bold text-sm transition-all active:scale-95 disabled:opacity-70 cursor-pointer"
+          style={{
+            background: retrying
+              ? "rgba(201, 168, 76, 0.15)"
+              : "linear-gradient(135deg, #C9A84C 0%, #B8973F 100%)",
+            color: retrying ? "#C9A84C" : "#0A0A0A",
+            border: retrying ? "1px solid rgba(201, 168, 76, 0.3)" : "none",
+            boxShadow: retrying ? "none" : "0 4px 24px rgba(201, 168, 76, 0.3)",
+            minWidth: "200px",
+          }}
+        >
+          {retrying ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-gold live-pulse" />
+              Reconnecting...
+            </span>
+          ) : (
+            "Try Again"
+          )}
+        </button>
+
+        {/* Offline library bypass */}
+        <button
+          onClick={() => {
+            router.push("/downloads");
+          }}
+          className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-sm text-gold border border-gold/20 bg-[#1C1C1C]/60 hover:bg-[#2C2C2C]/80 active:scale-95 transition-all cursor-pointer"
+          style={{ minWidth: "200px" }}
+        >
+          <Download className="w-4 h-4" />
+          Offline Magazines
+        </button>
+      </div>
 
       {/* Bottom branding */}
       <div

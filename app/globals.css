@@ -34,6 +34,7 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #0A0A0A;
 }
 
 body {
@@ -41,6 +42,8 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   overflow-x: hidden;
+  min-height: 100dvh;
+  touch-action: manipulation;
 }
 
 ::selection {
@@ -63,10 +66,39 @@ body {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #1A1A1A 25%, #2A2A2A 50%, #1A1A1A 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background:
+    linear-gradient(100deg, transparent 30%, rgba(201, 168, 76, 0.12) 48%, rgba(255, 255, 255, 0.08) 52%, transparent 70%),
+    linear-gradient(90deg, #141414 0%, #1F1F1F 50%, #141414 100%);
+  background-size: 240% 100%, 100% 100%;
+  animation: shimmer 1.45s ease-in-out infinite;
+  border: 1px solid rgba(255, 255, 255, 0.035);
   border-radius: 8px;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  contain: paint;
+}
+
+.skeleton-gold {
+  background:
+    linear-gradient(100deg, transparent 28%, rgba(232, 212, 139, 0.18) 48%, rgba(201, 168, 76, 0.22) 52%, transparent 72%),
+    linear-gradient(90deg, #15130d 0%, #221d10 50%, #15130d 100%);
+  background-size: 240% 100%, 100% 100%;
+}
+
+.skeleton-muted {
+  background:
+    linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.09) 50%, transparent 70%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.04));
+  background-size: 240% 100%, 100% 100%;
+}
+
+@keyframes skeleton-reveal {
+  0% { opacity: 0; transform: translate3d(0, 8px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.skeleton-reveal {
+  animation: skeleton-reveal 0.32s cubic-bezier(0.25, 0.8, 0.25, 1) both;
 }
 
 /* ── Breaking News Ticker ─────────────────────────────────────── */
@@ -102,6 +134,17 @@ body {
   border-bottom: 1px solid rgba(201, 168, 76, 0.15);
 }
 
+.glass-lite {
+  background: rgba(20, 20, 20, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.gold-glow-soft {
+  box-shadow: 0 0 0 1px rgba(201, 168, 76, 0.12) inset, 0 0 18px rgba(201, 168, 76, 0.08);
+}
+
 /* ── Pulse Dot (Breaking News) ────────────────────────────────── */
 
 @keyframes pulse-dot {
@@ -113,15 +156,30 @@ body {
   animation: pulse-dot 1.5s ease-in-out infinite;
 }
 
+@keyframes gold-glow-pulse {
+  0%, 100% { opacity: 0.7; transform: scale3d(1, 1, 1); }
+  50% { opacity: 1; transform: scale3d(1.06, 1.06, 1); }
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 0.75; transform: scale3d(1, 1, 1); }
+  50% { opacity: 1; transform: scale3d(1.25, 1.25, 1); }
+}
+
+.live-pulse {
+  animation: live-pulse 1.35s ease-in-out infinite;
+}
+
 /* ── Card Hover Effect ────────────────────────────────────────── */
 
 .card-hover {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, background 0.2s ease;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(201, 168, 76, 0.1);
+  transform: translate3d(0, -3px, 0) scale(1.008);
 }
 
 /* ── Gold Underline Animation ─────────────────────────────────── */
@@ -279,6 +337,87 @@ html, body {
   -webkit-backface-visibility: hidden;
 }
 
+.page-transition-layer {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.nav-dock {
+  transform: translateZ(0);
+  contain: layout paint;
+  min-height: 64px;
+}
+
+.nav-active-glow {
+  animation: gold-glow-pulse 2.4s ease-in-out infinite;
+}
+
+.nav-icon-pulse {
+  animation: gold-glow-pulse 2.2s ease-in-out infinite;
+  transform: translateZ(0);
+}
+
+.nav-gesture-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+}
+
+.ripple-touch {
+  overflow: hidden;
+  transform: translateZ(0);
+  transition: transform 0.16s ease, background-color 0.2s ease, border-color 0.2s ease;
+  will-change: transform;
+}
+
+.ripple-touch:active {
+  transform: translateZ(0) scale(0.97);
+}
+
+.ripple-touch::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(circle at center, rgba(201, 168, 76, 0.18), transparent 58%);
+  transform: scale(0.55);
+  transition: opacity 0.24s ease, transform 0.24s ease;
+  pointer-events: none;
+}
+
+.ripple-touch:active::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.magnetic-soft {
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.magnetic-soft:hover {
+  transform: translate3d(0, -2px, 0);
+}
+
+.progress-gold {
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0);
+}
+
+.progress-gold::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.24), transparent);
+  transform: translate3d(-100%, 0, 0);
+  animation: progress-sheen 1.6s ease-in-out infinite;
+}
+
+@keyframes progress-sheen {
+  0% { transform: translate3d(-100%, 0, 0); }
+  70%, 100% { transform: translate3d(100%, 0, 0); }
+}
+
 /* ── White Flash Prevention ───────────────────────────────────── */
 
 html {
@@ -347,4 +486,38 @@ body, html, * :not(input):not(textarea) {
   display: none;
 }
 
+/* ── Premium Glassmorphism Card ────────────────────────────────── */
+.glass-card {
+  background: rgba(20, 20, 20, 0.65);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
 
+.glass-card:hover {
+  border-color: rgba(201, 168, 76, 0.25);
+  background: rgba(20, 20, 20, 0.75);
+  box-shadow: 0 8px 32px 0 rgba(201, 168, 76, 0.08), 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .glass,
+  .glass-card,
+  .glass-lite {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
