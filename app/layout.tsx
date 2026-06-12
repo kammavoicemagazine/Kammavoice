@@ -32,25 +32,26 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "Kamma Voice | కమ్మ వాయిస్ — Telugu Digital Media",
+    default: "Kamma Voice - Telugu Magazine, Andhra Pradesh News & Kamma Community Updates",
     template: "%s | Kamma Voice",
   },
   description:
-    "Kamma Voice is a premium Telugu digital media platform delivering news, culture, community stories, and more. కమ్మ వాయిస్ — మీ తెలుగు డిజిటల్ మీడియా.",
+    "Latest Andhra Pradesh news, Kamma community updates, business, agriculture, education, politics and digital magazines.",
   keywords: [
     "Kamma Voice", "కమ్మ వాయిస్", "Telugu news", "Telugu media",
     "Andhra Pradesh", "Telangana", "community news", "Telugu magazine",
+    "business", "agriculture", "education", "politics"
   ],
   openGraph: {
     type: "website",
     locale: "te_IN",
     siteName: "Kamma Voice",
-    title: "Kamma Voice | కమ్మ వాయిస్",
-    description: "Premium Telugu digital media platform",
+    title: "Kamma Voice - Telugu Magazine, Andhra Pradesh News & Kamma Community Updates",
+    description: "Latest Andhra Pradesh news, Kamma community updates, business, agriculture, education, politics and digital magazines.",
     url: "https://www.kammavoice.com",
     images: [
       {
-        url: "/og-image.jpg", // Placeholder for actual OG image
+        url: "https://www.kammavoice.com/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "Kamma Voice Preview",
@@ -59,9 +60,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kamma Voice | కమ్మ వాయిస్",
-    description: "Premium Telugu digital media platform",
-    images: ["/og-image.jpg"], // Placeholder
+    title: "Kamma Voice - Telugu Magazine, Andhra Pradesh News & Kamma Community Updates",
+    description: "Latest Andhra Pradesh news, Kamma community updates, business, agriculture, education, politics and digital magazines.",
+    images: ["https://www.kammavoice.com/og-image.jpg"],
   },
   robots: { index: true, follow: true },
   metadataBase: new URL("https://www.kammavoice.com"),
@@ -95,6 +96,23 @@ export default function RootLayout({
           </CapacitorProvider>
         </Providers>
         <Analytics />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "Kamma Voice",
+              "url": "https://www.kammavoice.com",
+              "logo": "https://www.kammavoice.com/favicon.ico",
+              "sameAs": [
+                "https://www.facebook.com/kammavoice",
+                "https://twitter.com/kammavoice",
+                "https://www.linkedin.com/company/kammavoice"
+              ]
+            })
+          }}
+        />
       </body>
     </html>
   );

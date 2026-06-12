@@ -21,6 +21,7 @@ import {
   Minimize,
   Maximize2,
   Minimize2,
+  Share2,
 } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -831,7 +832,12 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex bg-gradient-to-b from-[#111] to-[#000] select-none w-screen h-screen overflow-hidden text-[#FAFAFA]"
+      className="fixed inset-0 z-50 flex select-none w-screen h-screen overflow-hidden text-[#FAFAFA]"
+      style={{
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.3)), url('/images/wood-texture.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
       onClick={handleTapZone}
       onDoubleClick={handleDoubleClick}
     >
@@ -905,11 +911,11 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
                   flippingTime={700}
                   usePortrait={usePortraitMode}
                   startPage={currentPage}
-                  maxShadowOpacity={0.25}
+                  maxShadowOpacity={0.5}
                   mobileScrollSupport={false}
                   clickEventForward={false}
                   swipeDistance={zoom > 1.0 ? 99999 : 30}
-                  showPageCorners={false}
+                  showPageCorners={true}
                   onFlip={handleFlip}
                   className="flipbook-container"
                   style={{}}
@@ -1025,6 +1031,27 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
 
             <div className="w-[1px] h-4 bg-white/10" />
 
+            {/* Share control */}
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  const { shareContent } = await import('@/lib/capacitor-init');
+                  await shareContent(
+                    title || "Kamma Voice Magazine", 
+                    "Read the latest edition of Kamma Voice Magazine.", 
+                    window.location.href
+                  );
+                } catch (e) {}
+              }}
+              className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-all cursor-pointer"
+              title="Share Magazine"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="w-[1px] h-4 bg-white/10" />
+
             {/* Fullscreen control */}
             <button
               onClick={(e) => {
@@ -1054,17 +1081,6 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
 
         .stf__wrapper {
           overflow: visible !important;
-        }
-
-        /* Make the back of the peeling page slightly transparent so it looks like thin paper */
-        .stf__block {
-          background-color: rgba(255, 255, 255, 0.95) !important;
-        }
-
-        @media (max-width: 767px) {
-          .stf__corner {
-            display: none !important;
-          }
         }
       `}</style>
     </div>

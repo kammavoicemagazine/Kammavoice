@@ -429,6 +429,78 @@ export async function getMagazineByIdSSR(id: string): Promise<Magazine | null> {
   }
 }
 
+export async function getArticleBySlugSSR(slug: string): Promise<Article | null> {
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
+  
+  try {
+    const res = await fetch(url, { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: "articles" }],
+          where: {
+            compositeFilter: {
+              op: "AND",
+              filters: [
+                { fieldFilter: { field: { fieldPath: "slug" }, op: "EQUAL", value: { stringValue: slug } } },
+                { fieldFilter: { field: { fieldPath: "isPublished" }, op: "EQUAL", value: { booleanValue: true } } }
+              ]
+            }
+          },
+          limit: 1
+        }
+      }),
+      next: { revalidate: 3600 } 
+    });
+    
+    if (!res.ok) return null;
+    const data = await res.json();
+    
+    if (!data[0]?.document) return null;
+    
+    const doc = data[0].document;
+    const f = doc.fields;
+    const id = doc.name.split('/').pop();
+    
+    // Construct Article object
+    return {
+      id,
+      title: f.title?.stringValue || "",
+      titleTelugu: f.titleTelugu?.stringValue,
+      slug: f.slug?.stringValue || "",
+      excerpt: f.excerpt?.stringValue || "",
+      content: f.content?.stringValue || "",
+      category: f.category?.stringValue || "News",
+      categoryTelugu: f.categoryTelugu?.stringValue,
+      imageUrl: f.imageUrl?.stringValue || "",
+      imagePublicId: f.imagePublicId?.stringValue,
+      tags: f.tags?.arrayValue?.values?.map((v: unknown) => (v as { stringValue?: string })?.stringValue).filter(Boolean) as string[] || [],
+      author: {
+        name: f.author?.mapValue?.fields?.name?.stringValue || "Admin",
+        id: f.author?.mapValue?.fields?.id?.stringValue || "admin",
+        role: f.author?.mapValue?.fields?.role?.stringValue || "Editor",
+      },
+      isPublished: f.isPublished?.booleanValue ?? true,
+      isFeatured: f.isFeatured?.booleanValue ?? false,
+      isBreaking: f.isBreaking?.booleanValue ?? false,
+      viewCount: parseInt(f.viewCount?.integerValue || "0"),
+      readingTime: parseInt(f.readingTime?.integerValue || "3"),
+      isAggregated: f.isAggregated?.booleanValue ?? false,
+      sourceUrl: f.sourceUrl?.stringValue,
+      sourceName: f.sourceName?.stringValue,
+      originalId: f.originalId?.stringValue,
+      approvalStatus: f.approvalStatus?.stringValue,
+      createdAt: f.createdAt?.stringValue || new Date().toISOString(),
+      updatedAt: f.updatedAt?.stringValue || new Date().toISOString(),
+    } as Article;
+  } catch (error) {
+    console.error("Article REST Fetch Error:", error);
+    return null;
+  }
+}
+
 export async function createMagazine(
   data: Omit<Magazine, "id" | "createdAt" | "updatedAt" | "viewCount">
 ): Promise<string> {
