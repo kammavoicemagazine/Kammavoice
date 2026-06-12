@@ -9,6 +9,7 @@ import React, {
   forwardRef,
 } from "react";
 import HTMLFlipBook from "react-pageflip";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { pdfjs } from "react-pdf";
 import {
   ChevronLeft,
@@ -848,17 +849,17 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
           ref={wrapperRef}
           className="flex-1 overflow-auto overscroll-none relative bg-transparent w-full h-full"
         >
-          {/* Side Nav Buttons (Visible on mobile and desktop) */}
+          {/* Side Nav Buttons (Hidden on mobile to prevent overlap) */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               flipPrev();
             }}
             disabled={currentPage <= 0}
-            className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 z-35 text-white/50 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] bg-black/20 hover:bg-black/50 rounded-full p-2 sm:p-0 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none"
+            className="hidden sm:block absolute left-6 top-1/2 -translate-y-1/2 z-35 text-white/50 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] bg-transparent backdrop-blur-none"
             aria-label="Previous Page"
           >
-            <ChevronLeft className="w-8 h-8 sm:w-14 sm:h-14 stroke-[2]" />
+            <ChevronLeft className="w-14 h-14 stroke-[2]" />
           </button>
           <button
             onClick={(e) => {
@@ -866,77 +867,88 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
               flipNext();
             }}
             disabled={currentPage >= numPages - 1}
-            className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 z-35 text-white/50 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] bg-black/20 hover:bg-black/50 rounded-full p-2 sm:p-0 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none"
+            className="hidden sm:block absolute right-6 top-1/2 -translate-y-1/2 z-35 text-white/50 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] bg-transparent backdrop-blur-none"
             aria-label="Next Page"
           >
-            <ChevronRight className="w-8 h-8 sm:w-14 sm:h-14 stroke-[2]" />
+            <ChevronRight className="w-14 h-14 stroke-[2]" />
           </button>
 
-          {/* Centered Scroll Wrapper using Grid for perfect scrolling without top/left cropping */}
-          <div className="min-w-full min-h-full grid place-items-center p-2 sm:p-4">
-            <div
-              style={{
-                width: `${wrapperWidth}px`,
-                height: `${wrapperHeight}px`,
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              {/* The scaled container wrapper utilizing absolute centered translate scale */}
+          {/* Centered Scroll Wrapper using TransformWrapper for pinch-zoom */}
+          <TransformWrapper
+            initialScale={1}
+            minScale={1}
+            maxScale={4}
+            wheel={{ step: 0.1 }}
+            pinch={{ step: 5 }}
+            doubleClick={{ disabled: true }}
+            panning={{ disabled: false }}
+          >
+            <TransformComponent wrapperClass="!w-full !h-full" contentClass="min-w-full min-h-full grid place-items-center p-2 sm:p-4">
               <div
                 style={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "50%",
-                  transform: `translate(-50%, -50%) scale(${finalScale})`,
-                  transformOrigin: "center center",
-                  width: `${bookDimensions.width * (usePortraitMode ? 1 : 2)}px`,
-                  height: `${bookDimensions.height}px`,
-                  // FlowPaper style drop shadows
-                  filter:
-                    "drop-shadow(0 25px 35px rgba(0, 0, 0, 0.55)) drop-shadow(0 12px 18px rgba(0, 0, 0, 0.45))",
+                  width: `${wrapperWidth}px`,
+                  height: `${wrapperHeight}px`,
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
                 }}
               >
-                {/* @ts-ignore */}
-                <HTMLFlipBook
-                  ref={flipBookRef}
-                  width={bookDimensions.width}
-                  height={bookDimensions.height}
-                  size="fixed"
-                  showCover={true}
-                  drawShadow={true}
-                  flippingTime={700}
-                  usePortrait={usePortraitMode}
-                  startPage={currentPage}
-                  maxShadowOpacity={0.5}
-                  mobileScrollSupport={false}
-                  clickEventForward={false}
-                  swipeDistance={zoom > 1.0 ? 99999 : 30}
-                  showPageCorners={true}
-                  onFlip={handleFlip}
-                  className="flipbook-container"
-                  style={{}}
+                {/* The scaled container wrapper utilizing absolute centered translate scale */}
+                <div
+                  style={{
+                    position: "absolute",
+                    left: "50%",
+                    top: "50%",
+                    transform: `translate(-50%, -50%) scale(${finalScale})`,
+                    transformOrigin: "center center",
+                    width: `${bookDimensions.width * (usePortraitMode ? 1 : 2)}px`,
+                    height: `${bookDimensions.height}px`,
+                    // FlowPaper style drop shadows
+                    filter:
+                      "drop-shadow(0 25px 35px rgba(0, 0, 0, 0.55)) drop-shadow(0 12px 18px rgba(0, 0, 0, 0.45))",
+                  }}
                 >
-                  {Array.from({ length: numPages }, (_, i) => (
-                    <FlipPage
-                      key={i}
-                      pdfDoc={pdfDoc}
-                      lowResSrc={lowResPages[i]}
-                      pageNumber={i + 1}
-                      totalPages={numPages}
-                      usePortraitMode={usePortraitMode}
-                      isNearby={isPageNearby(i + 1)}
-                      scale={isMobile ? 2.5 : 3.0}
-                      zoom={debouncedZoom}
-                    />
-                  ))}
-                </HTMLFlipBook>
+                  {/* @ts-ignore */}
+                  <HTMLFlipBook
+                    ref={flipBookRef}
+                    width={bookDimensions.width}
+                    height={bookDimensions.height}
+                    size="fixed"
+                    showCover={true}
+                    drawShadow={!isMobile}
+                    flippingTime={700}
+                    usePortrait={usePortraitMode}
+                    startPage={currentPage}
+                    maxShadowOpacity={0.5}
+                    mobileScrollSupport={false}
+                    clickEventForward={true}
+                    swipeDistance={zoom > 1.0 ? 99999 : 30}
+                    showPageCorners={!isMobile}
+                    onFlip={handleFlip}
+                    className="flipbook-container"
+                    style={{}}
+                  >
+                    {Array.from({ length: numPages }, (_, i) => (
+                      <FlipPage
+                        key={i}
+                        pdfDoc={pdfDoc}
+                        lowResSrc={lowResPages[i]}
+                        pageNumber={i + 1}
+                        totalPages={numPages}
+                        usePortraitMode={usePortraitMode}
+                        isNearby={isPageNearby(i + 1)}
+                        scale={isMobile ? 2.5 : 3.0}
+                        zoom={debouncedZoom}
+                      />
+                    ))}
+                  </HTMLFlipBook>
+                </div>
               </div>
-            </div>
-          </div>
+            </TransformComponent>
+          </TransformWrapper>
+        </div>
         </div>
 
         {/* ── 4. Elegant Page Navigation panel ── */}
