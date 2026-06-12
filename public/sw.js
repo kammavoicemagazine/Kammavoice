@@ -1,4 +1,4 @@
-const CACHE_NAME = "kammavoice-cache-v2";
+const CACHE_NAME = "kammavoice-cache-v3";
 const STATIC_ASSETS = [
   "/",
   "/favicon.ico",
