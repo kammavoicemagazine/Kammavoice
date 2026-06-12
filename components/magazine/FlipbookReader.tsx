@@ -731,9 +731,9 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
   const fitScale = useMemo(() => {
     if (containerSize.w === 0 || containerSize.h === 0) return 1.0;
 
-    const marginFactor = isMobile ? 0.96 : 0.94;
-    const targetW = containerSize.w * marginFactor;
-    const targetH = containerSize.h * marginFactor;
+    // Mobile: explicitly deduct 120px height, and 120px width (60px side margins) to prevent arrow overlapping
+    const targetW = isMobile ? containerSize.w - 120 : containerSize.w * 0.94;
+    const targetH = isMobile ? containerSize.h - 120 : containerSize.h * 0.94;
     const bookWidth = bookDimensions.width * (usePortraitMode ? 1 : 2);
 
     if (fitMode === "width") {
@@ -833,33 +833,37 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex select-none w-screen h-screen overflow-hidden text-[#FAFAFA]"
+      className="fixed inset-0 z-50 flex justify-center items-center select-none overflow-hidden text-[#FAFAFA]"
       style={{
+        height: "100dvh",
+        width: "100%",
         backgroundImage: "linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.3)), url('/images/wood-texture.png')",
         backgroundSize: "cover",
         backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}
       onClick={handleTapZone}
       onDoubleClick={handleDoubleClick}
     >
       {/* ── Immersive Viewer Workspace ── */}
-      <div className="flex-1 flex flex-col relative h-full overflow-hidden bg-transparent">
+      <div className="w-full h-full flex justify-center items-center relative overflow-hidden bg-transparent">
         {/* ── 3. Centered Zoom-Scroll Content ── */}
         <div
           ref={wrapperRef}
-          className="flex-1 overflow-auto overscroll-none relative bg-transparent w-full h-full"
+          className="overflow-auto overscroll-none relative bg-transparent w-full h-full flex justify-center items-center"
         >
-          {/* Side Nav Buttons (Hidden on mobile to prevent overlap) */}
+          {/* Side Nav Buttons (Visible permanently on mobile, glassmorphism) */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               flipPrev();
             }}
             disabled={currentPage <= 0}
-            className="hidden sm:block absolute left-6 top-1/2 -translate-y-1/2 z-35 text-white/50 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] bg-transparent backdrop-blur-none"
+            className="fixed sm:absolute left-[12px] sm:left-6 top-1/2 -translate-y-1/2 z-[100] text-white/70 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer bg-white/10 hover:bg-white/20 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/10 sm:border-transparent flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.5)] sm:shadow-none sm:filter sm:drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]"
+            style={{ width: "48px", height: "48px", borderRadius: "50%" }}
             aria-label="Previous Page"
           >
-            <ChevronLeft className="w-14 h-14 stroke-[2]" />
+            <ChevronLeft className="w-8 h-8 sm:w-14 sm:h-14 stroke-[2]" />
           </button>
           <button
             onClick={(e) => {
@@ -867,10 +871,11 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
               flipNext();
             }}
             disabled={currentPage >= numPages - 1}
-            className="hidden sm:block absolute right-6 top-1/2 -translate-y-1/2 z-35 text-white/50 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] bg-transparent backdrop-blur-none"
+            className="fixed sm:absolute right-[12px] sm:right-6 top-1/2 -translate-y-1/2 z-[100] text-white/70 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer bg-white/10 hover:bg-white/20 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/10 sm:border-transparent flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.5)] sm:shadow-none sm:filter sm:drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]"
+            style={{ width: "48px", height: "48px", borderRadius: "50%" }}
             aria-label="Next Page"
           >
-            <ChevronRight className="w-14 h-14 stroke-[2]" />
+            <ChevronRight className="w-8 h-8 sm:w-14 sm:h-14 stroke-[2]" />
           </button>
 
           {/* Centered Scroll Wrapper using TransformWrapper for pinch-zoom */}
