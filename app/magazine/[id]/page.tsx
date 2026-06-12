@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import MagazineReaderClient from "./MagazineReaderClient";
-import { getMagazineByIdSSR } from "@/lib/firestore";
+import { getMagazineByIdSSR, getMagazineBySlugSSR } from "@/lib/firestore";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -12,7 +12,10 @@ type Props = {
 // Generate SEO Metadata
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const magazine = await getMagazineByIdSSR(id);
+  let magazine = await getMagazineBySlugSSR(id);
+  if (!magazine) {
+    magazine = await getMagazineByIdSSR(id);
+  }
 
   if (!magazine) {
     return {
@@ -53,7 +56,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function MagazinePage({ params }: Props) {
   const { id } = await params;
-  const magazine = await getMagazineByIdSSR(id);
+  let magazine = await getMagazineBySlugSSR(id);
+  if (!magazine) {
+    magazine = await getMagazineByIdSSR(id);
+  }
 
   if (!magazine) {
     return (

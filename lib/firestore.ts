@@ -429,6 +429,64 @@ export async function getMagazineByIdSSR(id: string): Promise<Magazine | null> {
   }
 }
 
+/** 
+ * SSR-safe fetcher for magazines by slug using the REST API.
+ */
+export async function getMagazineBySlugSSR(slug: string): Promise<Magazine | null> {
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
+  
+  try {
+    const res = await fetch(url, { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: "magazines" }],
+          where: {
+            fieldFilter: { field: { fieldPath: "slug" }, op: "EQUAL", value: { stringValue: slug } }
+          },
+          limit: 1
+        }
+      }),
+      next: { revalidate: 3600 } 
+    });
+    
+    if (!res.ok) return null;
+    const data = await res.json();
+    
+    if (!data[0]?.document) return null;
+    
+    const doc = data[0].document;
+    const f = doc.fields;
+    const id = doc.name.split('/').pop() || "";
+    
+    return {
+      id: id,
+      title: f.title?.stringValue || "",
+      titleTelugu: f.titleTelugu?.stringValue,
+      slug: f.slug?.stringValue || "",
+      issueDate: f.issueDate?.stringValue || "",
+      volume: f.volume?.stringValue || "",
+      category: f.category?.stringValue || "Monthly",
+      year: parseInt(f.year?.integerValue || "2026"),
+      tags: f.tags?.arrayValue?.values?.map((v: unknown) => (v as { stringValue?: string })?.stringValue).filter(Boolean) as string[] || [],
+      coverImageUrl: f.coverImageUrl?.stringValue || "",
+      coverImagePublicId: f.coverImagePublicId?.stringValue,
+      pdfUrl: f.pdfUrl?.stringValue || "",
+      pdfPublicId: f.pdfPublicId?.stringValue,
+      pageCount: parseInt(f.pageCount?.integerValue || "0"),
+      viewCount: parseInt(f.viewCount?.integerValue || "0"),
+      isPublished: f.isPublished?.booleanValue ?? true,
+      createdAt: f.createdAt?.stringValue || new Date().toISOString(),
+      updatedAt: f.updatedAt?.stringValue || new Date().toISOString(),
+    } as Magazine;
+  } catch (error) {
+    console.error("Magazine Slug REST Fetch Error:", error);
+    return null;
+  }
+}
+
 export async function getArticleBySlugSSR(slug: string): Promise<Article | null> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
   const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
