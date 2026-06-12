@@ -53,3 +53,5 @@ android/app/release/
 android/.idea/
 *.iml
 android/**/*.iml
+
+.vercel

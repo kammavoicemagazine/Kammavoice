@@ -350,16 +350,31 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
 
     if (!wrapperRef.current) return;
 
+    let lastW = 0;
+    let lastH = 0;
+
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const w = window.innerWidth;
         const h = window.innerHeight;
-        setIsMobile(w < 768);
-        setUsePortraitMode(w < 900 || w < h);
-        setContainerSize({
-          w: entry.contentRect.width,
-          h: entry.contentRect.height,
-        });
+        const rectW = entry.contentRect.width;
+        const rectH = entry.contentRect.height;
+
+        // On mobile, ignore small height changes (like the URL bar hiding/showing) to prevent shaking
+        const isMobileDevice = w < 768;
+        const widthChanged = Math.abs(rectW - lastW) > 10;
+        const heightChanged = Math.abs(rectH - lastH) > (isMobileDevice ? 100 : 10);
+
+        if (widthChanged || heightChanged) {
+          lastW = rectW;
+          lastH = rectH;
+          setIsMobile(isMobileDevice);
+          setUsePortraitMode(w < 900 || w < h);
+          setContainerSize({
+            w: rectW,
+            h: rectH,
+          });
+        }
       }
     });
 
@@ -830,7 +845,7 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
         {/* ── 3. Centered Zoom-Scroll Content ── */}
         <div
           ref={wrapperRef}
-          className="flex-1 overflow-auto relative bg-transparent w-full h-full"
+          className="flex-1 overflow-auto overscroll-none relative bg-transparent w-full h-full"
         >
           {/* Side Nav Buttons (Hidden on mobile - FlowPaper style large chevrons) */}
           {!isMobile && (
