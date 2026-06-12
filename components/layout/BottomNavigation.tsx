@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, BookOpen, Newspaper, Film, Menu, X, Settings, Info, ShieldAlert, Download } from "lucide-react";
+import { Home, BookOpen, Newspaper, Film, Menu, X, Settings, Info, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { isNativePlatform } from "@/lib/capacitor-init";
 import { triggerLightTap } from "@/lib/haptic-utils";
-import { getOfflineMagazines } from "@/lib/offline-magazine";
-import { useUIStore } from "@/lib/store/ui-store";
 import { motionCurves, motionSprings, pressTap, useMotionProfile } from "@/lib/motion";
 
 const NAV_ITEMS = [
@@ -25,22 +23,17 @@ export default function BottomNavigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const motionProfile = useMotionProfile();
-  const downloadedCount = useUIStore((state) => state.downloadedMagazines.length);
-  const setDownloadedMagazines = useUIStore((state) => state.setDownloadedMagazines);
-
   useEffect(() => {
     // Show on native platform or mobile viewports
     const checkViewport = () => {
-      setShowNav(isNativePlatform || window.innerWidth < 1024);
+      const isReaderPage = pathname && pathname.includes("/magazine/") && pathname !== "/magazine";
+      setShowNav((isNativePlatform || window.innerWidth < 1024) && !isReaderPage);
     };
     checkViewport();
     window.addEventListener("resize", checkViewport);
     
-    // Load downloaded magazines count
-    setDownloadedMagazines(getOfflineMagazines());
-    
     return () => window.removeEventListener("resize", checkViewport);
-  }, [setDownloadedMagazines]);
+  }, [pathname]);
 
   useEffect(() => {
     if (pathname === "/") {
@@ -173,21 +166,9 @@ export default function BottomNavigation() {
                 </motion.button>
               </div>
 
-              {/* Bottom Sheet Navigation Grid */}
-              <div className="grid grid-cols-2 gap-4 p-6 bg-black/20">
-                {/* Offline Downloads */}
-                <motion.button
-                  onClick={() => { triggerLightTap(); setIsMenuOpen(false); router.push("/downloads"); }}
-                  whileTap={pressTap}
-                  className="flex flex-col items-center justify-center p-5 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] rounded-2xl transition-all cursor-pointer group relative overflow-hidden ripple-touch"
-                >
-                  <div className="absolute top-2 right-2 flex items-center justify-center w-5 h-5 rounded-full bg-gold/15 border border-gold/30 text-gold text-[10px] font-bold">
-                    {downloadedCount}
-                  </div>
-                  <Download className="w-6 h-6 text-gold group-hover:scale-110 transition-transform duration-300" />
-                  <span className="text-xs font-semibold text-gray-200 mt-2">Downloads</span>
-                  <span className="text-[9px] text-gray-500 mt-0.5">Read Offline</span>
-                </motion.button>
+              {/* Bottom Sheet Navigation Grid (Modified to 3 columns, hiding downloads) */}
+              <div className="grid grid-cols-3 gap-3 p-6 bg-black/20">
+
 
                 {/* About Us */}
                 <motion.button

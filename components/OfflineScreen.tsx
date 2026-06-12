@@ -100,7 +100,7 @@ export default function OfflineScreen({ onRetry }: OfflineScreenProps) {
           lineHeight: "1.6",
         }}
       >
-        Please check your internet connection. You can still read any of your downloaded magazines.
+        Please check your internet connection to access the latest news and magazines.
       </p>
 
       <div className="flex flex-col gap-3 w-full items-center">
@@ -129,17 +129,7 @@ export default function OfflineScreen({ onRetry }: OfflineScreenProps) {
           )}
         </button>
 
-        {/* Offline library bypass */}
-        <button
-          onClick={() => {
-            router.push("/downloads");
-          }}
-          className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-sm text-gold border border-gold/20 bg-[#1C1C1C]/60 hover:bg-[#2C2C2C]/80 active:scale-95 transition-all cursor-pointer"
-          style={{ minWidth: "200px" }}
-        >
-          <Download className="w-4 h-4" />
-          Offline Magazines
-        </button>
+
       </div>
 
       {/* Bottom branding */}

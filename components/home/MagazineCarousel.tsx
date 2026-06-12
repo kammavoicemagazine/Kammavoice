@@ -6,13 +6,11 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import type { Magazine } from "@/lib/types";
-import { useUIStore } from "@/lib/store/ui-store";
 
 export default function MagazineCarousel({ magazines }: { magazines: Magazine[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  const downloadedMagazines = useUIStore((state) => state.downloadedMagazines);
 
   if (!magazines || magazines.length === 0) return null;
 
@@ -74,10 +72,6 @@ export default function MagazineCarousel({ magazines }: { magazines: Magazine[] 
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {magazines.map((magazine, i) => {
-            const downloaded = downloadedMagazines.find((m) => m.id === magazine.id);
-            const isDownloaded = !!downloaded;
-            const isUpdateAvailable = downloaded && downloaded.pdfUrl !== magazine.pdfUrl;
-
             return (
               <motion.div
                 key={magazine.id}
@@ -89,7 +83,9 @@ export default function MagazineCarousel({ magazines }: { magazines: Magazine[] 
               >
                 <Link href={`/magazine/${magazine.id}`} className="block">
                   <div className="relative aspect-[3/4] w-full rounded-sm overflow-hidden shadow-lg transition-transform duration-300 group-hover:-translate-y-2 group-hover:shadow-xl group-hover:shadow-gold/10 bg-black border border-white/5">
-                    {isDownloaded && (
+                    {/* 
+                    FUTURE RE-ENABLE FOR OFFLINE READY BADGE:
+                    isDownloaded && (
                       <div className={`absolute top-2.5 left-2.5 z-10 px-2 py-0.5 rounded-full text-[8px] font-extrabold tracking-wider uppercase text-black shadow-md ${
                         isUpdateAvailable 
                           ? "bg-gold border border-gold-light/20 animate-pulse" 
@@ -97,7 +93,8 @@ export default function MagazineCarousel({ magazines }: { magazines: Magazine[] 
                       }`}>
                         {isUpdateAvailable ? "Update Available" : "Offline Ready"}
                       </div>
-                    )}
+                    )
+                    */}
                     <Image
                       src={magazine.coverImageUrl}
                       alt={magazine.title}

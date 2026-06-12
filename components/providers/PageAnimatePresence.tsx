@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { motionCurves, useMotionProfile } from "@/lib/motion";
 
-const routeOrder = ["/", "/magazine", "/news", "/videos", "/downloads", "/about", "/privacy", "/admin"];
+const routeOrder = ["/", "/magazine", "/news", "/videos", "/about", "/privacy", "/admin"];
 
 function getRouteIndex(pathname: string) {
   const match = routeOrder.findIndex((path) => pathname === path || (path !== "/" && pathname.startsWith(path)));

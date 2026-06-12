@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getArticles } from "@/lib/firestore";
+import { adminGetArticles as getArticles } from "@/lib/firestore-admin-operations";
 import Parser from "rss-parser"; // Just importing to satisfy compiler, but we manually generate XML
 
 export async function GET() {

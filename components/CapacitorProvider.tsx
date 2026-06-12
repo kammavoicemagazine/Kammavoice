@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { initCapacitor, onOfflineChange, enablePullToRefresh, isNativePlatform } from "@/lib/capacitor-init";
-import { initOfflineDownloads } from "@/lib/offline-magazine";
+
 import { motion, AnimatePresence } from "framer-motion";
 import OfflineScreen from "@/components/OfflineScreen";
 import { useRouter, usePathname } from "next/navigation";
@@ -27,12 +27,10 @@ export default function CapacitorProvider({ children }: { children: React.ReactN
     initCapacitor()
       .then(() => {
         setInitialized(true);
-        initOfflineDownloads();
       })
       .catch((err) => {
         console.warn("[KV-App] Capacitor init warning:", err);
         setInitialized(true);
-        initOfflineDownloads();
       });
 
     // Subscribe to offline state changes
@@ -46,7 +44,7 @@ export default function CapacitorProvider({ children }: { children: React.ReactN
       if (isOffline) {
         store.showAlert({
           title: "Connection Lost",
-          subtitle: "Bypassing to offline downloads.",
+          subtitle: "Browsing in offline mode.",
           type: "error",
           duration: 4000
         });
@@ -67,9 +65,27 @@ export default function CapacitorProvider({ children }: { children: React.ReactN
 
     // Register offline service worker
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js")
-        .then((reg) => console.log("[KV-SW] Service Worker registered scope:", reg.scope))
-        .catch((err) => console.warn("[KV-SW] Service Worker registration failed:", err));
+      if (window.location.hostname === "localhost") {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          let hasUnregistered = false;
+          for (const registration of registrations) {
+            registration.unregister().then((success) => {
+              if (success) {
+                console.log("[KV-SW] Cleaned up stale service worker on localhost");
+                hasUnregistered = true;
+              }
+            });
+          }
+          if (hasUnregistered) {
+            // Force browser reload to clear service worker controls and stale caches
+            window.location.reload();
+          }
+        });
+      } else {
+        navigator.serviceWorker.register("/sw.js")
+          .then((reg) => console.log("[KV-SW] Service Worker registered scope:", reg.scope))
+          .catch((err) => console.warn("[KV-SW] Service Worker registration failed:", err));
+      }
     }
 
     // Dismiss client splash after 2.8 seconds (cinematic flow)
@@ -83,8 +99,8 @@ export default function CapacitorProvider({ children }: { children: React.ReactN
     };
   }, []);
 
-  // Show offline screen when no internet, not in splash, and NOT browsing the downloads page
-  const isBrowsingOfflineContent = pathname === "/downloads" || pathname.startsWith("/magazine/");
+  // Show offline screen when no internet, not in splash, and NOT browsing the reader page
+  const isBrowsingOfflineContent = pathname.startsWith("/magazine/");
   if (offline && !showSplash && !isBrowsingOfflineContent) {
     return (
       <OfflineScreen

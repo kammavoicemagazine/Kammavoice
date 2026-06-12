@@ -1,5 +1,22 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { initializeFirestore, getFirestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  getFirestore,
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  type DocumentData,
+  type QueryConstraint
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
@@ -15,18 +32,44 @@ const firebaseConfig = {
 // Initialize Firebase (prevent re-initialization in development)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Force long-polling and auto-detection to prevent gRPC connection crashes during Next.js SSR / Vercel Serverless
 let firestoreInstance;
-try {
-  firestoreInstance = initializeFirestore(app, { 
-    experimentalForceLongPolling: true,
-    experimentalAutoDetectLongPolling: true 
-  });
-} catch (error) {
-  firestoreInstance = getFirestore(app);
+const globalWithFirestore = global as typeof globalThis & {
+  firestoreInstance?: any;
+};
+
+if (globalWithFirestore.firestoreInstance) {
+  firestoreInstance = globalWithFirestore.firestoreInstance;
+} else {
+  try {
+    firestoreInstance = initializeFirestore(app, { 
+      experimentalForceLongPolling: true
+    });
+    globalWithFirestore.firestoreInstance = firestoreInstance;
+    console.log("[Firebase Client] Initialized Firestore with long polling.");
+  } catch (error) {
+    console.warn("[Firebase Client] initializeFirestore failed, falling back to getFirestore:", error);
+    firestoreInstance = getFirestore(app);
+  }
 }
 
 export const db = firestoreInstance;
 export const auth = getAuth(app);
+
+export {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  type DocumentData,
+  type QueryConstraint
+};
 
 export default app;

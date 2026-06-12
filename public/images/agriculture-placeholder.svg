@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#080808" />
+      <stop offset="100%" stop-color="#141414" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C9A84C" />
+      <stop offset="50%" stop-color="#F2D785" />
+      <stop offset="100%" stop-color="#A6832B" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="450" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle circular grid -->
+  <circle cx="400" cy="225" r="150" fill="none" stroke="#222" stroke-width="1" opacity="0.3" stroke-dasharray="5 5"/>
+  <circle cx="400" cy="225" r="200" fill="none" stroke="#222" stroke-width="1" opacity="0.15"/>
+  
+  <!-- Premium Accent Lines -->
+  <line x1="50" y1="225" x2="150" y2="225" stroke="#222" stroke-width="1" opacity="0.4" />
+  <line x1="650" y1="225" x2="750" y2="225" stroke="#222" stroke-width="1" opacity="0.4" />
+  
+  <!-- Agriculture Leaf/Seedling Icon in Center -->
+  <g transform="translate(400, 175)" stroke="url(#goldGrad)" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <!-- Leaf outline -->
+    <path d="M0,30 C-20,10 -30,-10 -20,-25 C-10,-20 10,-20 20,-25 C30,-10 20,10 0,30 Z" stroke-width="2"/>
+    <!-- Leaf stem center line -->
+    <path d="M0,30 L0,-20" stroke-width="1.5" />
+    <!-- Veins -->
+    <path d="M0,15 L-12,5" stroke-width="1.2" />
+    <path d="M0,15 L12,5" stroke-width="1.2" />
+    <path d="M0,2 L-15,-8" stroke-width="1.2" />
+    <path d="M0,2 L15,-8" stroke-width="1.2" />
+    <path d="M0,-11 L-10,-18" stroke-width="1.2" />
+    <path d="M0,-11 L10,-18" stroke-width="1.2" />
+  </g>
+  
+  <!-- Text Content -->
+  <text x="400" y="275" font-family="'Playfair Display', 'Georgia', serif" font-size="24" font-weight="700" fill="url(#goldGrad)" text-anchor="middle" letter-spacing="0.1em">AGRICULTURE</text>
+  <text x="400" y="305" font-family="'Inter', sans-serif" font-size="12" font-weight="600" fill="#666" text-anchor="middle" letter-spacing="0.2em">వ్యవసాయం • FARM &amp; RURAL UPDATE</text>
+  <text x="400" y="325" font-family="'Inter', sans-serif" font-size="10" fill="#444" text-anchor="middle" letter-spacing="0.05em">KAMMA VOICE AGRICULTURE</text>
+  
+  <!-- Subtle gold dot accents -->
+  <circle cx="350" cy="301" r="2" fill="#C9A84C" opacity="0.5"/>
+  <circle cx="450" cy="301" r="2" fill="#C9A84C" opacity="0.5"/>
+</svg>

@@ -47,3 +47,39 @@ export function readingTime(text: string): number {
   const words = text.trim().split(/\s+/).length;
   return Math.max(1, Math.ceil(words / wordsPerMinute));
 }
+
+/** Get category-specific fallback image placeholder URL */
+export function getCategoryPlaceholder(category: string | undefined | null): string {
+  if (!category) return "/images/news-placeholder.svg";
+  
+  const cleanCategory = category.trim().toLowerCase();
+  switch (cleanCategory) {
+    case "politics":
+    case "political":
+      return "/images/politics-placeholder.svg";
+    case "business":
+    case "economy":
+    case "finance":
+      return "/images/business-placeholder.svg";
+    case "agriculture":
+    case "farming":
+    case "rural":
+      return "/images/agriculture-placeholder.svg";
+    case "education":
+    case "career":
+    case "jobs":
+      return "/images/education-placeholder.svg";
+    case "kamma-community":
+    case "community":
+    case "kamma":
+      return "/images/kamma-community-placeholder.svg";
+    case "ap-development":
+    case "development":
+    case "infrastructure":
+    case "ap-news":
+      return "/images/ap-development-placeholder.svg";
+    default:
+      return "/images/news-placeholder.svg";
+  }
+}
+

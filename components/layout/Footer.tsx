@@ -20,11 +20,11 @@ const QUICK_LINKS = [
 
 const CATEGORIES = [
   { href: "/category/politics", label: "Politics", labelTe: "రాజకీయాలు" },
-  { href: "/category/community", label: "Community", labelTe: "సమాజం" },
-  { href: "/category/culture", label: "Culture", labelTe: "సంస్కృతి" },
   { href: "/category/business", label: "Business", labelTe: "వ్యాపారం" },
+  { href: "/category/agriculture", label: "Agriculture", labelTe: "వ్యవసాయం" },
   { href: "/category/education", label: "Education", labelTe: "విద్య" },
-  { href: "/category/sports", label: "Sports", labelTe: "క్రీడలు" },
+  { href: "/category/kamma-community", label: "Kamma Community", labelTe: "కమ్మ సమాజం" },
+  { href: "/category/ap-development", label: "Andhra Pradesh Development", labelTe: "ఆంధ్రప్రదేశ్ అభివృద్ధి" },
 ];
 
 const SOCIALS = [
@@ -156,7 +156,7 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-3 text-sm text-muted">
                 <Phone className="w-4 h-4 text-gold mt-0.5 shrink-0" />
-                <span>+91 98765 43210</span>
+                <span>8247330933</span>
               </li>
               <li className="flex items-start gap-3 text-sm text-muted">
                 <MapPin className="w-4 h-4 text-gold mt-0.5 shrink-0" />

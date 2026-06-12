@@ -46,11 +46,11 @@ export default function ArticleForm({ article, mode }: ArticleFormProps) {
         // Fallback categories if Firestore not configured
         setCategories([
           { id: "politics", name: "Politics", nameTelugu: "రాజకీయాలు", slug: "politics", articleCount: 0 },
-          { id: "community", name: "Community", nameTelugu: "సమాజం", slug: "community", articleCount: 0 },
-          { id: "culture", name: "Culture", nameTelugu: "సంస్కృతి", slug: "culture", articleCount: 0 },
           { id: "business", name: "Business", nameTelugu: "వ్యాపారం", slug: "business", articleCount: 0 },
+          { id: "agriculture", name: "Agriculture", nameTelugu: "వ్యవసాయం", slug: "agriculture", articleCount: 0 },
           { id: "education", name: "Education", nameTelugu: "విద్య", slug: "education", articleCount: 0 },
-          { id: "sports", name: "Sports", nameTelugu: "క్రీడలు", slug: "sports", articleCount: 0 },
+          { id: "kamma-community", name: "Kamma Community", nameTelugu: "కమ్మ సమాజం", slug: "kamma-community", articleCount: 0 },
+          { id: "ap-development", name: "Andhra Pradesh Development", nameTelugu: "ఆంధ్రప్రదేశ్ అభివృద్ధి", slug: "ap-development", articleCount: 0 },
         ]);
       });
   }, []);

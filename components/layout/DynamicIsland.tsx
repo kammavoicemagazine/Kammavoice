@@ -2,7 +2,7 @@
 
 import { useUIStore } from "@/lib/store/ui-store";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Languages, AlertCircle, CheckCircle2, Radio, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, Radio, X } from "lucide-react";
 import { triggerLightTap } from "@/lib/haptic-utils";
 import { motionSprings, pressTap } from "@/lib/motion";
 
@@ -12,10 +12,6 @@ export default function DynamicIsland() {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case "download":
-        return <Download className="w-4 h-4 text-gold" />;
-      case "translation":
-        return <Languages className="w-4 h-4 text-cyan-400 animate-pulse" />;
       case "breaking":
         return <Radio className="w-4 h-4 text-red-500 live-pulse" />;
       case "success":
@@ -41,7 +37,7 @@ export default function DynamicIsland() {
             className="pointer-events-auto bg-[#141414]/90 backdrop-blur-xl border border-white/[0.08] rounded-full flex flex-col items-center overflow-hidden hw-accelerated"
             style={{
               maxWidth: "92vw",
-              width: activeAlert.type === "download" ? "290px" : "auto",
+              width: "auto",
               boxShadow: "0 0 0 1px rgba(255,255,255,0.05) inset",
             }}
             layoutId="dynamicIsland"
@@ -77,17 +73,6 @@ export default function DynamicIsland() {
                 <X className="w-3 h-3" />
               </motion.button>
             </div>
-
-            {/* Progress Bar (Only for active downloads) */}
-            {activeAlert.type === "download" && typeof activeAlert.progress === "number" && (
-              <div className="w-full bg-white/5 h-1 relative overflow-hidden flex-shrink-0">
-                <motion.div
-                  className="h-full origin-left bg-gradient-to-r from-gold-dark via-gold to-gold-light progress-gold"
-                  style={{ scaleX: Math.max(0, Math.min(100, activeAlert.progress)) / 100 }}
-                  transition={{ ease: "easeInOut", duration: 0.3 }}
-                />
-              </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>

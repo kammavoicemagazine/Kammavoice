@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import Image from "next/image";
+
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Eye, User, Calendar, Share2 } from "lucide-react";
+import { ArrowLeft, Clock, User, Calendar, Share2, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { getArticleBySlug, incrementViewCount, getArticles } from "@/lib/firestore";
-import { formatDate, formatDateTelugu } from "@/lib/utils";
+import { formatDate, formatDateTelugu, getCategoryPlaceholder } from "@/lib/utils";
 import type { Article } from "@/lib/types";
 import NewsCard from "@/components/news/NewsCard";
 import { shareContent } from "@/lib/capacitor-init";
@@ -213,18 +213,14 @@ export default function ArticlePage() {
           </div>
 
           {/* Cover Image */}
-          {article.imageUrl && (
-            <div className="relative w-full h-[300px] md:h-[450px] rounded-2xl overflow-hidden mb-10">
-              <Image
-                src={article.imageUrl}
-                alt={article.title}
-                fill
-                className="object-cover"
-                priority
-                sizes="(max-width: 896px) 100vw, 896px"
-              />
-            </div>
-          )}
+          <div className="relative w-full h-[300px] md:h-[450px] rounded-2xl overflow-hidden mb-10 bg-[#111]">
+            <img
+              src={article.imageUrl || getCategoryPlaceholder(article.category)}
+              alt={article.title}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).src = getCategoryPlaceholder(article.category); }}
+            />
+          </div>
 
           {/* Content */}
           <div

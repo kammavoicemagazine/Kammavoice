@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#080808" />
+      <stop offset="100%" stop-color="#141414" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C9A84C" />
+      <stop offset="50%" stop-color="#F2D785" />
+      <stop offset="100%" stop-color="#A6832B" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="450" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle circular grid -->
+  <circle cx="400" cy="225" r="150" fill="none" stroke="#222" stroke-width="1" opacity="0.3" stroke-dasharray="5 5"/>
+  <circle cx="400" cy="225" r="200" fill="none" stroke="#222" stroke-width="1" opacity="0.15"/>
+  
+  <!-- Premium Accent Lines -->
+  <line x1="50" y1="225" x2="150" y2="225" stroke="#222" stroke-width="1" opacity="0.4" />
+  <line x1="650" y1="225" x2="750" y2="225" stroke="#222" stroke-width="1" opacity="0.4" />
+  
+  <!-- Urban / Development Icon in Center -->
+  <g transform="translate(400, 175)" stroke="url(#goldGrad)" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <!-- Building 1 (Left, Medium) -->
+    <rect x="-30" y="-10" width="16" height="35" />
+    <!-- Building 2 (Center, Tall) -->
+    <rect x="-10" y="-30" width="20" height="55" />
+    <!-- Building 3 (Right, Short) -->
+    <rect x="14" y="5" width="16" height="20" />
+    <!-- Bridge / Infrastructure arc at bottom -->
+    <path d="M-40,25 C-15,15 15,15 40,25" stroke-width="1.5" />
+    <!-- Base line -->
+    <line x1="-45" y1="30" x2="45" y2="30" stroke-width="2" />
+  </g>
+  
+  <!-- Text Content -->
+  <text x="400" y="275" font-family="'Playfair Display', 'Georgia', serif" font-size="24" font-weight="700" fill="url(#goldGrad)" text-anchor="middle" letter-spacing="0.1em">AP DEVELOPMENT</text>
+  <text x="400" y="305" font-family="'Inter', sans-serif" font-size="12" font-weight="600" fill="#666" text-anchor="middle" letter-spacing="0.2em">ఆంధ్రప్రదేశ్ అభివృద్ధి • INFRASTRUCTURE</text>
+  <text x="400" y="325" font-family="'Inter', sans-serif" font-size="10" fill="#444" text-anchor="middle" letter-spacing="0.05em">KAMMA VOICE AP DEV</text>
+  
+  <!-- Subtle gold dot accents -->
+  <circle cx="350" cy="301" r="2" fill="#C9A84C" opacity="0.5"/>
+  <circle cx="450" cy="301" r="2" fill="#C9A84C" opacity="0.5"/>
+</svg>

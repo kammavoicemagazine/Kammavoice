@@ -11,12 +11,13 @@ import {
   where,
   orderBy,
   limit,
-  serverTimestamp,
   type DocumentData,
   type QueryConstraint,
-} from "firebase/firestore";
-import { db } from "./firebase";
+  db
+} from "./firebase";
 import type { Article, Category, Advertisement, GalleryImage, Magazine, MagazinePageTranslation } from "./types";
+
+console.log("[Firestore Module Scope] db is:", db);
 
 /* ═══════════════════════════════════════════════════════════════
    ARTICLES
@@ -26,14 +27,28 @@ const articlesRef = collection(db, "articles");
 
 /** Fetch all published articles (ordered by createdAt desc) */
 export async function getArticles(maxCount = 50): Promise<Article[]> {
-  const constraints: QueryConstraint[] = [
-    where("isPublished", "==", true),
-    orderBy("createdAt", "desc"),
-    limit(maxCount),
-  ];
-  const q = query(articlesRef, ...constraints);
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+  try {
+    const constraints: QueryConstraint[] = [
+      where("isPublished", "==", true),
+      orderBy("createdAt", "desc"),
+      limit(maxCount),
+    ];
+    const q = query(articlesRef, ...constraints);
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+  } catch (err) {
+    console.warn("[Firestore] getArticles failed (index building/missing). Falling back to client-side sorting:", err);
+    try {
+      const q = query(articlesRef, where("isPublished", "==", true));
+      const snap = await getDocs(q);
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+      list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      return list.slice(0, maxCount);
+    } catch (fallbackErr) {
+      console.error("[Firestore] getArticles fallback failed:", fallbackErr);
+      return [];
+    }
+  }
 }
 
 /** Fetch all articles for admin (including drafts) */
@@ -45,7 +60,12 @@ export async function getAllArticles(): Promise<Article[]> {
 
 /** Fetch a single article by slug */
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
-  const q = query(articlesRef, where("slug", "==", slug), limit(1));
+  const q = query(
+    articlesRef,
+    where("slug", "==", slug),
+    where("isPublished", "==", true),
+    limit(1)
+  );
   const snap = await getDocs(q);
   if (snap.empty) return null;
   const d = snap.docs[0];
@@ -62,14 +82,32 @@ export async function getArticleById(id: string): Promise<Article | null> {
 
 /** Fetch articles by magazine ID */
 export async function getArticlesByMagazine(magazineId: string): Promise<Article[]> {
-  const constraints: QueryConstraint[] = [
-    where("isPublished", "==", true),
-    where("magazineId", "==", magazineId),
-    orderBy("createdAt", "desc"),
-  ];
-  const q = query(articlesRef, ...constraints);
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+  try {
+    const constraints: QueryConstraint[] = [
+      where("isPublished", "==", true),
+      where("magazineId", "==", magazineId),
+      orderBy("createdAt", "desc"),
+    ];
+    const q = query(articlesRef, ...constraints);
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+  } catch (err) {
+    console.warn("[Firestore] getArticlesByMagazine failed. Falling back to client-side sorting:", err);
+    try {
+      const q = query(
+        articlesRef,
+        where("isPublished", "==", true),
+        where("magazineId", "==", magazineId)
+      );
+      const snap = await getDocs(q);
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+      list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      return list;
+    } catch (fallbackErr) {
+      console.error("[Firestore] getArticlesByMagazine fallback failed:", fallbackErr);
+      return [];
+    }
+  }
 }
 
 /** Fetch articles by category */
@@ -77,41 +115,95 @@ export async function getArticlesByCategory(
   category: string,
   maxCount = 20
 ): Promise<Article[]> {
-  const q = query(
-    articlesRef,
-    where("isPublished", "==", true),
-    where("category", "==", category),
-    orderBy("createdAt", "desc"),
-    limit(maxCount)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+  try {
+    const q = query(
+      articlesRef,
+      where("isPublished", "==", true),
+      where("category", "==", category),
+      orderBy("createdAt", "desc"),
+      limit(maxCount)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+  } catch (err) {
+    console.warn("[Firestore] getArticlesByCategory failed. Falling back to client-side sorting:", err);
+    try {
+      const q = query(
+        articlesRef,
+        where("isPublished", "==", true),
+        where("category", "==", category)
+      );
+      const snap = await getDocs(q);
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+      list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      return list.slice(0, maxCount);
+    } catch (fallbackErr) {
+      console.error("[Firestore] getArticlesByCategory fallback failed:", fallbackErr);
+      return [];
+    }
+  }
 }
 
 /** Fetch featured articles */
 export async function getFeaturedArticles(maxCount = 4): Promise<Article[]> {
-  const q = query(
-    articlesRef,
-    where("isPublished", "==", true),
-    where("isFeatured", "==", true),
-    orderBy("createdAt", "desc"),
-    limit(maxCount)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+  try {
+    const q = query(
+      articlesRef,
+      where("isPublished", "==", true),
+      where("isFeatured", "==", true),
+      orderBy("createdAt", "desc"),
+      limit(maxCount)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+  } catch (err) {
+    console.warn("[Firestore] getFeaturedArticles failed. Falling back to client-side sorting:", err);
+    try {
+      const q = query(
+        articlesRef,
+        where("isPublished", "==", true),
+        where("isFeatured", "==", true)
+      );
+      const snap = await getDocs(q);
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+      list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      return list.slice(0, maxCount);
+    } catch (fallbackErr) {
+      console.error("[Firestore] getFeaturedArticles fallback failed:", fallbackErr);
+      return [];
+    }
+  }
 }
 
 /** Fetch breaking news articles */
 export async function getBreakingArticles(maxCount = 5): Promise<Article[]> {
-  const q = query(
-    articlesRef,
-    where("isPublished", "==", true),
-    where("isBreaking", "==", true),
-    orderBy("createdAt", "desc"),
-    limit(maxCount)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+  try {
+    const q = query(
+      articlesRef,
+      where("isPublished", "==", true),
+      where("isBreaking", "==", true),
+      orderBy("createdAt", "desc"),
+      limit(maxCount)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+  } catch (err) {
+    console.warn("[Firestore] getBreakingArticles failed. Falling back to client-side sorting:", err);
+    try {
+      const q = query(
+        articlesRef,
+        where("isPublished", "==", true),
+        where("isBreaking", "==", true)
+      );
+      const snap = await getDocs(q);
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+      list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      return list.slice(0, maxCount);
+    } catch (fallbackErr) {
+      console.error("[Firestore] getBreakingArticles fallback failed:", fallbackErr);
+      return [];
+    }
+  }
 }
 
 /** Create a new article */
@@ -183,11 +275,11 @@ export async function seedCategories(): Promise<void> {
 
   const defaults: Omit<Category, "id">[] = [
     { name: "Politics", nameTelugu: "రాజకీయాలు", slug: "politics", articleCount: 0, color: "#C9A84C" },
-    { name: "Community", nameTelugu: "సమాజం", slug: "community", articleCount: 0, color: "#4A90D9" },
-    { name: "Culture", nameTelugu: "సంస్కృతి", slug: "culture", articleCount: 0, color: "#D94A6B" },
     { name: "Business", nameTelugu: "వ్యాపారం", slug: "business", articleCount: 0, color: "#4AD98B" },
+    { name: "Agriculture", nameTelugu: "వ్యవసాయం", slug: "agriculture", articleCount: 0, color: "#E67E22" },
     { name: "Education", nameTelugu: "విద్య", slug: "education", articleCount: 0, color: "#9B59B6" },
-    { name: "Sports", nameTelugu: "క్రీడలు", slug: "sports", articleCount: 0, color: "#E67E22" },
+    { name: "Kamma Community", nameTelugu: "కమ్మ సమాజం", slug: "kamma-community", articleCount: 0, color: "#4A90D9" },
+    { name: "Andhra Pradesh Development", nameTelugu: "ఆంధ్రప్రదేశ్ అభివృద్ధి", slug: "ap-development", articleCount: 0, color: "#D94A6B" },
   ];
 
   for (const cat of defaults) {
@@ -246,14 +338,28 @@ export async function getMediaRecords(
 const magazinesRef = collection(db, "magazines");
 
 export async function getMagazines(maxCount = 20): Promise<Magazine[]> {
-  const q = query(
-    magazinesRef,
-    where("isPublished", "==", true),
-    orderBy("createdAt", "desc"),
-    limit(maxCount)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Magazine));
+  try {
+    const q = query(
+      magazinesRef,
+      where("isPublished", "==", true),
+      orderBy("createdAt", "desc"),
+      limit(maxCount)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Magazine));
+  } catch (err) {
+    console.warn("[Firestore] getMagazines failed (index building/missing). Falling back to client-side sorting:", err);
+    try {
+      const q = query(magazinesRef, where("isPublished", "==", true));
+      const snap = await getDocs(q);
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Magazine));
+      list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      return list.slice(0, maxCount);
+    } catch (fallbackErr) {
+      console.error("[Firestore] getMagazines fallback failed:", fallbackErr);
+      return [];
+    }
+  }
 }
 
 export async function getAllMagazines(): Promise<Magazine[]> {
@@ -263,7 +369,12 @@ export async function getAllMagazines(): Promise<Magazine[]> {
 }
 
 export async function getMagazineBySlug(slug: string): Promise<Magazine | null> {
-  const q = query(magazinesRef, where("slug", "==", slug), limit(1));
+  const q = query(
+    magazinesRef,
+    where("slug", "==", slug),
+    where("isPublished", "==", true),
+    limit(1)
+  );
   const snap = await getDocs(q);
   if (snap.empty) return null;
   return { id: snap.docs[0].id, ...snap.docs[0].data() } as Magazine;
@@ -301,7 +412,7 @@ export async function getMagazineByIdSSR(id: string): Promise<Magazine | null> {
       volume: f.volume?.stringValue || "",
       category: f.category?.stringValue || "Monthly",
       year: parseInt(f.year?.integerValue || "2026"),
-      tags: f.tags?.arrayValue?.values?.map((v: any) => v.stringValue) || [],
+      tags: f.tags?.arrayValue?.values?.map((v: unknown) => (v as { stringValue?: string })?.stringValue).filter(Boolean) as string[] || [],
       coverImageUrl: f.coverImageUrl?.stringValue || "",
       coverImagePublicId: f.coverImagePublicId?.stringValue,
       pdfUrl: f.pdfUrl?.stringValue || "",
@@ -357,11 +468,29 @@ export async function incrementMagazineViewCount(id: string): Promise<void> {
 
 // ─── AGGREGATED NEWS (QUEUE & INGESTION) ─────────────────────────────
 
-export async function checkArticleExistsByOriginalId(originalId: string): Promise<boolean> {
+export async function checkArticleExistsByOriginalId(originalId: string, sourceUrl?: string): Promise<boolean> {
   try {
-    const q = query(collection(db, "articles"), where("originalId", "==", originalId), limit(1));
+    const q = query(
+      collection(db, "articles"), 
+      where("isAggregated", "==", true),
+      where("originalId", "==", originalId), 
+      limit(1)
+    );
     const snapshot = await getDocs(q);
-    return !snapshot.empty;
+    if (!snapshot.empty) return true;
+
+    if (sourceUrl) {
+      const q2 = query(
+        collection(db, "articles"), 
+        where("isAggregated", "==", true),
+        where("sourceUrl", "==", sourceUrl), 
+        limit(1)
+      );
+      const snapshot2 = await getDocs(q2);
+      if (!snapshot2.empty) return true;
+    }
+
+    return false;
   } catch (error) {
     console.error("Error checking article exists:", error);
     return false;
@@ -375,7 +504,7 @@ export async function saveAggregatedArticle(articleData: Partial<Article>): Prom
       ...articleData,
       isAggregated: true,
       approvalStatus: articleData.approvalStatus || "pending",
-      isPublished: articleData.approvalStatus === "auto-published",
+      isPublished: articleData.isPublished ?? (articleData.approvalStatus === "auto-published"),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -408,7 +537,7 @@ export async function getPendingAggregatedArticles(): Promise<Article[]> {
 export async function updateAggregatedArticleStatus(id: string, status: "approved" | "rejected", overrideData?: Partial<Article>): Promise<void> {
   try {
     const ref = doc(db, "articles", id);
-    const updateData: any = {
+    const updateData: Partial<Article> = {
       approvalStatus: status,
       isPublished: status === "approved",
       updatedAt: new Date().toISOString(),

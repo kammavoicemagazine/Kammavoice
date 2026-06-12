@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Heart, MessageCircle, Share2, Volume2, VolumeX, ArrowLeft, Play, Pause } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { triggerLightTap, triggerSuccessHaptic } from "@/lib/haptic-utils";
-import { useUIStore } from "@/lib/store/ui-store";
 
 interface Reel {
   id: string;

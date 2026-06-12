@@ -430,7 +430,7 @@ export default function MagazineForm({ magazine, mode }: MagazineFormProps) {
       </div>
 
       {/* Translation Management Section (Only in Edit Mode) */}
-      {mode === "edit" && magazine && (
+      {mode === "edit" && magazine && false && (
         <div className="p-6 rounded-xl border border-border-subtle bg-surface space-y-6 mt-12">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-subtle pb-6">
             <div>
@@ -481,7 +481,7 @@ export default function MagazineForm({ magazine, mode }: MagazineFormProps) {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-surface-hover border border-border-subtle shadow-inner">
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted font-semibold uppercase tracking-wider">Translated Pages</span>
-                  <span className="text-xl font-bold text-green-500">{completedCount} / {pageCount || magazine.pageCount || 0}</span>
+                  <span className="text-xl font-bold text-green-500">{completedCount} / {pageCount || magazine?.pageCount || 0}</span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted font-semibold uppercase tracking-wider">Failed Pages</span>
@@ -503,7 +503,7 @@ export default function MagazineForm({ magazine, mode }: MagazineFormProps) {
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-muted uppercase tracking-wider">Page Translation Status</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-              {Array.from({ length: pageCount || magazine.pageCount || 0 }, (_, i) => i + 1).map((pageNum) => {
+              {Array.from({ length: pageCount || magazine?.pageCount || 0 }, (_, i) => i + 1).map((pageNum) => {
                 const trans = translations.find(t => t.pageNumber === pageNum);
                 const isCurrentProcessing = processingPage === pageNum;
 
@@ -548,7 +548,7 @@ export default function MagazineForm({ magazine, mode }: MagazineFormProps) {
                           if (!pdfUrl) return;
                           const loadingTask = pdfjs.getDocument(pdfUrl);
                           const pdfDoc = await loadingTask.promise;
-                          await processTranslationForPage(pageNum, pdfDoc, magazine.pageCount);
+                          await processTranslationForPage(pageNum, pdfDoc, magazine?.pageCount || 0);
                         }}
                         className="absolute inset-0 bg-black/80 text-gold text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center backdrop-blur-sm transition-opacity"
                       >

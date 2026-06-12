@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { getArticles, getMagazines } from "@/lib/firestore";
+import { adminGetArticles as getArticles, adminGetMagazines as getMagazines } from "@/lib/firestore-admin-operations";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kammavoice.com";
 

@@ -297,7 +297,7 @@ export default function AdminDashboard() {
           <div className="p-6 flex-1 overflow-y-auto space-y-6 max-h-[480px] scrollbar-thin scrollbar-thumb-border-subtle scrollbar-track-transparent">
             {activities.map((item, i) => (
               <motion.div
-                key={item.id}
+                key={`${item.id}-${i}`}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: i * 0.1 }}

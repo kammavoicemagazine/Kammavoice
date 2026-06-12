@@ -4,10 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Globe } from "lucide-react";
 import type { Magazine } from "@/lib/types";
-import { useUIStore } from "@/lib/store/ui-store";
 
 export default function MagazineArchive({ magazines }: { magazines: Magazine[] }) {
-  const downloadedMagazines = useUIStore((state) => state.downloadedMagazines);
 
   if (magazines.length === 0) return null;
 
@@ -45,10 +43,6 @@ export default function MagazineArchive({ magazines }: { magazines: Magazine[] }
 
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 md:gap-8">
                 {grouped[year].map((magazine) => {
-                  const downloaded = downloadedMagazines.find((m) => m.id === magazine.id);
-                  const isDownloaded = !!downloaded;
-                  const isUpdateAvailable = downloaded && downloaded.pdfUrl !== magazine.pdfUrl;
-
                   return (
                     <Link
                       key={magazine.id}
@@ -56,7 +50,9 @@ export default function MagazineArchive({ magazines }: { magazines: Magazine[] }
                       className="group block"
                     >
                       <div className="relative aspect-[3/4] w-full rounded-sm overflow-hidden shadow-lg transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-2xl group-hover:shadow-gold/10 border border-border-subtle group-hover:border-gold/30">
-                        {isDownloaded && (
+                        {/* 
+                        FUTURE RE-ENABLE FOR OFFLINE BADGE:
+                        isDownloaded && (
                           <div className={`absolute top-2.5 right-2.5 z-10 px-2 py-0.5 rounded-full text-[8px] font-extrabold tracking-wider uppercase text-black shadow-md ${
                             isUpdateAvailable 
                               ? "bg-gold border border-gold-light/20 animate-pulse" 
@@ -64,7 +60,8 @@ export default function MagazineArchive({ magazines }: { magazines: Magazine[] }
                           }`}>
                             {isUpdateAvailable ? "Update" : "Offline"}
                           </div>
-                        )}
+                        )
+                        */}
                         <Image
                           src={magazine.coverImageUrl}
                           alt={magazine.title}
@@ -73,12 +70,14 @@ export default function MagazineArchive({ magazines }: { magazines: Magazine[] }
                           sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
                         />
                         
-                        {/* Multilingual AI Badge */}
-                        {magazine.translationStatus?.totalTranslatedPages ? (
+                        {/* 
+                        FUTURE RE-ENABLE FOR MULTILINGUAL BADGE:
+                        magazine.translationStatus?.totalTranslatedPages ? (
                           <div className="absolute top-2.5 left-2.5 z-10 px-2.5 py-1 rounded-full bg-black/85 backdrop-blur-md border border-gold/40 text-gold text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-lg">
                             <Globe className="w-3 h-3 animate-pulse" /> Multilingual AI
                           </div>
-                        ) : null}
+                        ) : null
+                        */}
 
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm z-20">
                           <span className="flex items-center gap-2 text-white font-medium bg-gold/90 px-4 py-2 rounded-full transform translate-y-4 group-hover:translate-y-0 transition-transform">

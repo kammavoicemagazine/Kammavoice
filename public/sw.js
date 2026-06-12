@@ -1,4 +1,4 @@
-const CACHE_NAME = "kammavoice-cache-v1";
+const CACHE_NAME = "kammavoice-cache-v2";
 const STATIC_ASSETS = [
   "/",
   "/favicon.ico",
@@ -36,6 +36,15 @@ self.addEventListener("fetch", (e) => {
 
   // Exclude third-party or chrome-extension resources from direct caching
   if (!url.origin.includes("kammavoice") && !url.origin.includes("localhost") && !url.origin.includes("vercel.app") && !url.origin.includes("cloudinary")) {
+    return;
+  }
+
+  // Exclude internal Next.js chunks, hot reloads, and dev compiler files from the Service Worker cache
+  if (
+    url.pathname.includes("_next/") || 
+    url.pathname.includes("webpack-hmr") || 
+    url.pathname.includes("hot-update")
+  ) {
     return;
   }
 

@@ -16,7 +16,12 @@ export default function CategoryNews({ articles, categories }: CategoryNewsProps
   const filtered =
     active === "all"
       ? articles
-      : articles.filter((a) => a.category === active);
+      : articles.filter((a) => {
+          if (!a.category) return false;
+          const cat = categories.find((c) => c.id === active);
+          const slug = cat ? (cat.slug || cat.name.toLowerCase()) : active;
+          return a.category.toLowerCase() === slug.toLowerCase();
+        });
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

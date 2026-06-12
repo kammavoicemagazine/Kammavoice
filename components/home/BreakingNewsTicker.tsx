@@ -5,9 +5,22 @@ import { motion } from "framer-motion";
 import { Radio } from "lucide-react";
 import { triggerLightTap } from "@/lib/haptic-utils";
 import { motionCurves, pressTap } from "@/lib/motion";
+import type { Article } from "@/lib/types";
 
-export default function BreakingNewsTicker() {
-  const items = [...BREAKING_NEWS, ...BREAKING_NEWS]; // Duplicate for seamless looping
+interface BreakingNewsTickerProps {
+  articles?: Article[];
+}
+
+export default function BreakingNewsTicker({ articles }: BreakingNewsTickerProps) {
+  const displayItems = articles && articles.length > 0
+    ? articles.map((a) => ({
+        id: a.id,
+        text: a.title,
+        textTelugu: a.titleTelugu || a.title,
+      }))
+    : BREAKING_NEWS;
+
+  const items = [...displayItems, ...displayItems]; // Duplicate for seamless looping
 
   return (
     <motion.div 
