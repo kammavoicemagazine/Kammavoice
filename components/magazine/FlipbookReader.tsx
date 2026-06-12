@@ -831,12 +831,7 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex bg-[#1a120c] select-none w-screen h-screen overflow-hidden text-[#FAFAFA]"
-      style={{
-        backgroundImage: "linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.3)), url('/images/wood-texture.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
+      className="fixed inset-0 z-50 flex bg-gradient-to-b from-[#111] to-[#000] select-none w-screen h-screen overflow-hidden text-[#FAFAFA]"
       onClick={handleTapZone}
       onDoubleClick={handleDoubleClick}
     >
@@ -847,33 +842,29 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
           ref={wrapperRef}
           className="flex-1 overflow-auto overscroll-none relative bg-transparent w-full h-full"
         >
-          {/* Side Nav Buttons (Hidden on mobile - FlowPaper style large chevrons) */}
-          {!isMobile && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  flipPrev();
-                }}
-                disabled={currentPage <= 0}
-                className="absolute left-6 top-1/2 -translate-y-1/2 z-35 text-white/45 hover:text-white hover:scale-115 transition-all disabled:opacity-5 disabled:pointer-events-none cursor-pointer filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.7)]"
-                aria-label="Previous Page"
-              >
-                <ChevronLeft className="w-14 h-14 stroke-[1.5]" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  flipNext();
-                }}
-                disabled={currentPage >= numPages - 1}
-                className="absolute right-6 top-1/2 -translate-y-1/2 z-35 text-white/45 hover:text-white hover:scale-115 transition-all disabled:opacity-5 disabled:pointer-events-none cursor-pointer filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.7)]"
-                aria-label="Next Page"
-              >
-                <ChevronRight className="w-14 h-14 stroke-[1.5]" />
-              </button>
-            </>
-          )}
+          {/* Side Nav Buttons (Visible on mobile and desktop) */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              flipPrev();
+            }}
+            disabled={currentPage <= 0}
+            className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 z-35 text-white/50 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] bg-black/20 hover:bg-black/50 rounded-full p-2 sm:p-0 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none"
+            aria-label="Previous Page"
+          >
+            <ChevronLeft className="w-8 h-8 sm:w-14 sm:h-14 stroke-[2]" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              flipNext();
+            }}
+            disabled={currentPage >= numPages - 1}
+            className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 z-35 text-white/50 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] bg-black/20 hover:bg-black/50 rounded-full p-2 sm:p-0 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none"
+            aria-label="Next Page"
+          >
+            <ChevronRight className="w-8 h-8 sm:w-14 sm:h-14 stroke-[2]" />
+          </button>
 
           {/* Centered Scroll Wrapper using Grid for perfect scrolling without top/left cropping */}
           <div className="min-w-full min-h-full grid place-items-center p-2 sm:p-4">
@@ -914,11 +905,11 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
                   flippingTime={700}
                   usePortrait={usePortraitMode}
                   startPage={currentPage}
-                  maxShadowOpacity={0.55}
+                  maxShadowOpacity={0.25}
                   mobileScrollSupport={false}
                   clickEventForward={false}
                   swipeDistance={zoom > 1.0 ? 99999 : 30}
-                  showPageCorners={!usePortraitMode}
+                  showPageCorners={false}
                   onFlip={handleFlip}
                   className="flipbook-container"
                   style={{}}
@@ -1063,6 +1054,11 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
 
         .stf__wrapper {
           overflow: visible !important;
+        }
+
+        /* Make the back of the peeling page slightly transparent so it looks like thin paper */
+        .stf__block {
+          background-color: rgba(255, 255, 255, 0.95) !important;
         }
 
         @media (max-width: 767px) {
