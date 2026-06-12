@@ -949,7 +949,6 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
             </TransformComponent>
           </TransformWrapper>
         </div>
-        </div>
 
         {/* ── 4. Elegant Page Navigation panel ── */}
         <div
