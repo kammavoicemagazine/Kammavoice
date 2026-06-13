@@ -59,13 +59,12 @@ export default function AdvertisementClient({ ad }: Props) {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-surface border border-border-subtle rounded-2xl overflow-hidden shadow-xl">
             {/* Banner Image */}
-            <div className="relative aspect-[21/9] w-full bg-black/10">
-              <Image
+            <div className="w-full bg-black/10 flex justify-center border-b border-border-subtle">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={ad.imageUrl}
                 alt={ad.sponsorName || ad.title}
-                fill
-                className="object-cover"
-                priority
+                className="w-full h-auto max-h-[80vh] object-contain"
               />
             </div>
 
