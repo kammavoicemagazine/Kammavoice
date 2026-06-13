@@ -54,25 +54,19 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "AI & Media",
+    label: "AI & Ads",
     roles: ["Super Admin", "Editor", "Translator"],
     items: [
       { href: "/admin/ai-center", label: "AI Center", icon: Cpu, badge: "Gemini 1.5" },
-      { href: "/admin/media", label: "Media Library", icon: ImageIcon },
-    ],
-  },
-  {
-    label: "Monetization & Users",
-    roles: ["Super Admin", "Editor", "Moderator"],
-    items: [
       { href: "/admin/ads", label: "Advertisements", icon: Megaphone },
-      { href: "/admin/users", label: "Users & Roles", icon: Users },
     ],
   },
+
   {
     label: "System",
     roles: ["Super Admin"],
     items: [
+      { href: "/admin/users", label: "Users & Roles", icon: Users },
       { href: "/admin/settings", label: "Settings", icon: Settings },
     ],
   },
