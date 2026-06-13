@@ -10,7 +10,7 @@ const NAV_LINKS = [
   { href: "/", label: "Home", labelTe: "హోమ్" },
   { href: "/magazine", label: "Magazine", labelTe: "మ్యాగజైన్" },
   { href: "/news", label: "News", labelTe: "వార్తలు" },
-  { href: "/gallery", label: "Gallery", labelTe: "గ్యాలరీ" },
+  { href: "/advertisements", label: "Advertisements", labelTe: "ప్రకటనలు" },
   { href: "/videos", label: "Videos", labelTe: "వీడియోలు" },
   { href: "/about", label: "About", labelTe: "గురించి" },
 ];

@@ -1,5 +1,6 @@
 import { MetadataRoute } from "next";
 import { adminGetArticles as getArticles, adminGetMagazines as getMagazines } from "@/lib/firestore-admin-operations";
+import { getAllActiveAds } from "@/lib/firestore";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kammavoice.com";
 
@@ -9,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}`, lastModified: new Date(), changeFrequency: "always", priority: 1 },
     { url: `${BASE_URL}/news`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.9 },
     { url: `${BASE_URL}/magazine`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
-    { url: `${BASE_URL}/gallery`, lastModified: new Date(), changeFrequency: "daily", priority: 0.8 },
+    { url: `${BASE_URL}/advertisements`, lastModified: new Date(), changeFrequency: "daily", priority: 0.8 },
     { url: `${BASE_URL}/videos`, lastModified: new Date(), changeFrequency: "daily", priority: 0.8 },
     { url: `${BASE_URL}/about`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
   ];
@@ -33,7 +34,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
-    return [...routes, ...articleRoutes, ...magazineRoutes];
+    // Dynamic Advertisement Routes
+    const ads = await getAllActiveAds();
+    const adRoutes: MetadataRoute.Sitemap = ads.filter(ad => ad.slug).map((ad) => ({
+      url: `${BASE_URL}/advertisements/${ad.slug}`,
+      lastModified: new Date(ad.updatedAt || ad.createdAt || new Date()),
+      changeFrequency: "weekly",
+      priority: 0.6,
+    }));
+
+    return [...routes, ...articleRoutes, ...magazineRoutes, ...adRoutes];
   } catch (error) {
     console.error("Failed to generate sitemap dynamics:", error);
     return routes;

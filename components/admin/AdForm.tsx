@@ -28,9 +28,19 @@ export default function AdForm({ mode, id }: Props) {
     contactNumber: "",
     notes: "",
     isActive: true,
+    featured: false,
+    amountPaid: 0,
+    paymentStatus: "pending",
     startDate: new Date().toISOString().slice(0, 10),
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
   });
+
+  const generateSlug = (text: string) => {
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
+  };
 
   useEffect(() => {
     if (mode === "edit" && id) {
@@ -88,9 +98,12 @@ export default function AdForm({ mode, id }: Props) {
     setLoading(true);
 
     try {
+      const finalSlug = formData.slug || generateSlug(formData.sponsorName || formData.title || `ad-${Date.now()}`);
+
       // Ensure we store proper ISO dates for precise querying
       const submissionData = {
         ...formData,
+        slug: finalSlug,
         startDate: new Date(formData.startDate as string).toISOString(),
         endDate: new Date(formData.endDate as string).toISOString(),
       };
@@ -158,6 +171,39 @@ export default function AdForm({ mode, id }: Props) {
                   onChange={e => setFormData(prev => ({ ...prev, linkUrl: e.target.value }))}
                   className="w-full p-2 border rounded-md bg-background"
                   placeholder="https://"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Website (Public URL)</label>
+                <input
+                  type="url"
+                  value={formData.website || ""}
+                  onChange={e => setFormData(prev => ({ ...prev, website: e.target.value }))}
+                  className="w-full p-2 border rounded-md bg-background"
+                  placeholder="https://"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Description (Public)</label>
+                <textarea
+                  rows={3}
+                  value={formData.description || ""}
+                  onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full p-2 border rounded-md bg-background resize-none"
+                  placeholder="Brief description about the sponsor or ad..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Custom Slug</label>
+                <input
+                  type="text"
+                  value={formData.slug || ""}
+                  onChange={e => setFormData(prev => ({ ...prev, slug: generateSlug(e.target.value) }))}
+                  className="w-full p-2 border rounded-md bg-background"
+                  placeholder="Leave empty to auto-generate"
                 />
               </div>
             </div>
@@ -233,6 +279,17 @@ export default function AdForm({ mode, id }: Props) {
                 <label htmlFor="isActive" className="text-sm font-medium">Enable Ad Delivery</label>
               </div>
 
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="featured"
+                  checked={formData.featured || false}
+                  onChange={e => setFormData(prev => ({ ...prev, featured: e.target.checked }))}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+                <label htmlFor="featured" className="text-sm font-medium">Featured Advertisement</label>
+              </div>
+
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Start Date</label>
@@ -258,7 +315,7 @@ export default function AdForm({ mode, id }: Props) {
             </div>
 
             <div className="bg-card p-6 rounded-lg border shadow-sm space-y-4">
-              <h2 className="text-xl font-semibold mb-4">Additional Info</h2>
+              <h2 className="text-xl font-semibold mb-4">Additional Info & Revenue</h2>
               
               <div>
                 <label className="block text-sm font-medium mb-1">Contact Number (Optional)</label>
@@ -268,6 +325,31 @@ export default function AdForm({ mode, id }: Props) {
                   onChange={e => setFormData(prev => ({ ...prev, contactNumber: e.target.value }))}
                   className="w-full p-2 border rounded-md bg-background"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Amount Paid</label>
+                  <input
+                    type="number"
+                    value={formData.amountPaid || 0}
+                    onChange={e => setFormData(prev => ({ ...prev, amountPaid: parseFloat(e.target.value) }))}
+                    className="w-full p-2 border rounded-md bg-background"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Payment Status</label>
+                  <select
+                    value={formData.paymentStatus || "pending"}
+                    onChange={e => setFormData(prev => ({ ...prev, paymentStatus: e.target.value as any }))}
+                    className="w-full p-2 border rounded-md bg-background"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="partial">Partial</option>
+                    <option value="paid">Paid</option>
+                  </select>
+                </div>
               </div>
 
               <div>

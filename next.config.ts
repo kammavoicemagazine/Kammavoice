@@ -20,6 +20,15 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: ["firebase", "firebase-admin"],
+  async redirects() {
+    return [
+      {
+        source: '/gallery',
+        destination: '/advertisements',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

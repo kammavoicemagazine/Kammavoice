@@ -767,7 +767,25 @@ export async function getActiveAdsByCategory(category: AdCategory): Promise<Adve
   // Filter by date range on client/server since Firestore composite queries on inequality are tricky
   return ads.filter(ad => ad.startDate <= now && ad.endDate >= now);
 }
+export async function getAllActiveAds(): Promise<Advertisement[]> {
+  const now = new Date().toISOString();
+  const q = query(
+    adsRef,
+    where("status", "==", "active"),
+    where("isActive", "==", true)
+  );
+  const snap = await getDocs(q);
+  const ads = snap.docs.map(d => ({ id: d.id, ...d.data() } as Advertisement));
+  return ads.filter(ad => ad.startDate <= now && ad.endDate >= now).sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+}
 
+export async function getAdBySlug(slug: string): Promise<Advertisement | null> {
+  const q = query(adsRef, where("slug", "==", slug));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const doc = snap.docs[0];
+  return { id: doc.id, ...doc.data() } as Advertisement;
+}
 export async function createAd(data: Omit<Advertisement, "id" | "impressions" | "clicks" | "createdAt" | "updatedAt">): Promise<string> {
   const docRef = await addDoc(adsRef, {
     ...data,
