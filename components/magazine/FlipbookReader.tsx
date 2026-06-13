@@ -900,21 +900,25 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
                   flexShrink: 0,
                 }}
               >
-                {/* The scaled container wrapper utilizing absolute centered translate scale */}
                 <div
                   style={{
-                    position: "absolute",
-                    left: "50%",
-                    top: "50%",
-                    transform: `translate(-50%, -50%) scale(${finalScale})`,
-                    transformOrigin: "center center",
-                    width: `${bookDimensions.width * (usePortraitMode ? 1 : 2)}px`,
-                    height: `${bookDimensions.height}px`,
-                    // FlowPaper style drop shadows
-                    filter:
-                      "drop-shadow(0 25px 35px rgba(0, 0, 0, 0.55)) drop-shadow(0 12px 18px rgba(0, 0, 0, 0.45))",
+                    width: `${wrapperWidth}px`,
+                    height: `${wrapperHeight}px`,
+                    margin: "0 auto",
+                    position: "relative",
                   }}
                 >
+                  <div
+                    style={{
+                      width: `${bookDimensions.width * (usePortraitMode ? 1 : 2)}px`,
+                      height: `${bookDimensions.height}px`,
+                      transform: `scale(${finalScale})`,
+                      transformOrigin: "top left",
+                      // FlowPaper style drop shadows
+                      filter:
+                        "drop-shadow(0 25px 35px rgba(0, 0, 0, 0.55)) drop-shadow(0 12px 18px rgba(0, 0, 0, 0.45))",
+                    }}
+                  >
                   {/* @ts-ignore */}
                   <HTMLFlipBook
                     ref={flipBookRef}
@@ -949,6 +953,7 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
                       />
                     ))}
                   </HTMLFlipBook>
+                  </div>
                 </div>
               </div>
             </TransformComponent>

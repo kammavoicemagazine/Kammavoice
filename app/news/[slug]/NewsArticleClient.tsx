@@ -14,6 +14,7 @@ import { getArticleBySlug, incrementViewCount, getArticles } from "@/lib/firesto
 import { formatDate, formatDateTelugu, getCategoryPlaceholder } from "@/lib/utils";
 import type { Article } from "@/lib/types";
 import NewsCard from "@/components/news/NewsCard";
+import AdBanner from "@/components/ads/AdBanner";
 import { shareContent } from "@/lib/capacitor-init";
 
 export default function ArticlePage() {
@@ -268,6 +269,8 @@ export default function ArticlePage() {
             </div>
           )}
         </motion.div>
+
+        <AdBanner category="article_banner" className="my-10" />
 
         {/* Related Articles */}
         {related.length > 0 && (

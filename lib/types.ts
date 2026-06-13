@@ -80,18 +80,27 @@ export interface Video {
   createdAt: string;
 }
 
+export type AdCategory = "homepage_banner" | "magazine_banner" | "article_banner" | "half_page" | "full_page";
+export type AdStatus = "active" | "scheduled" | "expired";
+
 /** Advertisement */
 export interface Advertisement {
   id: string;
   title: string;
   imageUrl: string;
   linkUrl: string;
-  placement: "hero" | "sidebar" | "leaderboard" | "inline" | "footer";
+  category: AdCategory;
+  status: AdStatus;
+  sponsorName?: string;
+  contactNumber?: string;
+  notes?: string;
   isActive: boolean;
   impressions: number;
   clicks: number;
   startDate: string;
   endDate: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /** Admin analytics */

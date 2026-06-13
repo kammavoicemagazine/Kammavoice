@@ -1,50 +1,106 @@
+"use client";
+
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
+import { getActiveAdsByCategory, incrementAdImpression, incrementAdClick } from "@/lib/firestore";
+import type { Advertisement, AdCategory } from "@/lib/types";
 
 interface AdBannerProps {
-  variant?: "leaderboard" | "sidebar" | "inline";
-  imageUrl?: string;
-  linkUrl?: string;
+  category?: AdCategory;
   className?: string;
+  // Legacy support for older usages
+  variant?: "leaderboard" | "sidebar" | "inline";
 }
 
 export default function AdBanner({
-  variant = "leaderboard",
-  imageUrl,
-  linkUrl = "#",
+  category = "homepage_banner",
+  variant,
   className = "",
 }: AdBannerProps) {
+  const [ad, setAd] = useState<Advertisement | null>(null);
+  const [loading, setLoading] = useState(true);
+  const containerRef = useRef<HTMLAnchorElement>(null);
+  const impressionRecorded = useRef(false);
+
+  useEffect(() => {
+    const fetchAd = async () => {
+      try {
+        const ads = await getActiveAdsByCategory(category);
+        if (ads.length > 0) {
+          const randomIndex = Math.floor(Math.random() * ads.length);
+          setAd(ads[randomIndex]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch advertisement", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAd();
+  }, [category]);
+
+  useEffect(() => {
+    if (!ad || !containerRef.current || impressionRecorded.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          incrementAdImpression(ad.id);
+          impressionRecorded.current = true;
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [ad]);
+
+  // Requirements: 
+  // 1. If no active ad exists for a position, do not render any placeholder or fallback image. 
+  // 2. Hide the ad component completely.
+  if (loading || !ad) return null;
+
+  const handleClick = (e: React.MouseEvent) => {
+    // We do NOT use e.preventDefault() here because we are using an actual <a> tag
+    // but we can increment the click asynchronously
+    incrementAdClick(ad.id);
+  };
+
   const heights: Record<string, string> = {
+    homepage_banner: "h-32 md:h-48",
     leaderboard: "h-20 md:h-24",
     sidebar: "h-64",
     inline: "h-28",
+    magazine_banner: "h-24 md:h-32",
+    article_banner: "h-24 md:h-32",
+    half_page: "h-[300px]",
+    full_page: "h-[600px]"
   };
+
+  const adHeightClass = heights[category] || heights[variant || "leaderboard"];
 
   return (
     <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 ${className}`}>
       <a
-        href={linkUrl}
+        ref={containerRef}
+        href={ad.linkUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className={`block w-full ${heights[variant]} rounded-xl border border-border-subtle bg-surface-light overflow-hidden relative group`}
+        onClick={handleClick}
+        className={`block w-full ${adHeightClass} rounded-xl border border-border-subtle bg-surface-light overflow-hidden relative group`}
       >
-        {imageUrl ? (
-          <Image
-            src={imageUrl}
-            alt="Advertisement"
-            fill
-            className="object-cover"
-            sizes="100vw"
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <p className="text-xs text-muted uppercase tracking-widest">
-                Advertisement
-              </p>
-              <p className="text-[10px] text-muted/50 mt-1">ప్రకటన</p>
-            </div>
-          </div>
-        )}
+        <Image
+          src={ad.imageUrl}
+          alt={ad.title || "Advertisement"}
+          fill
+          className="object-cover transition-opacity hover:opacity-95"
+          sizes="100vw"
+        />
+        <div className="absolute top-0 right-0 bg-black/60 text-white/80 text-[10px] px-2 py-0.5 rounded-bl-md z-10 font-medium">
+          Advertisement
+        </div>
       </a>
       <p className="text-[10px] text-muted/40 text-center mt-1 uppercase tracking-widest">
         Ad

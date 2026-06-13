@@ -15,7 +15,7 @@ import {
   type QueryConstraint,
   db
 } from "./firebase";
-import type { Article, Category, Advertisement, GalleryImage, Magazine, MagazinePageTranslation } from "./types";
+import type { Article, Category, Advertisement, AdCategory, GalleryImage, Magazine, MagazinePageTranslation } from "./types";
 
 console.log("[Firestore Module Scope] db is:", db);
 
@@ -287,25 +287,7 @@ export async function seedCategories(): Promise<void> {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ADVERTISEMENTS
-   ═══════════════════════════════════════════════════════════════ */
 
-const adsRef = collection(db, "advertisements");
-
-export async function getActiveAds(
-  placement?: string
-): Promise<Advertisement[]> {
-  const constraints: QueryConstraint[] = [
-    where("isActive", "==", true),
-  ];
-  if (placement) {
-    constraints.push(where("placement", "==", placement));
-  }
-  const q = query(adsRef, ...constraints);
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Advertisement));
-}
 
 /* ═══════════════════════════════════════════════════════════════
    MEDIA
@@ -754,8 +736,84 @@ export async function updateMagazineTranslationStatus(
       },
       updatedAt: new Date().toISOString()
     });
-  } catch (error) {
+} catch (error) {
     console.error(`Error updating translation status for mag ${magazineId}:`, error);
     throw error;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADVERTISEMENT SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+
+export const adsRef = collection(db, "ads");
+
+export async function adminGetAds(): Promise<Advertisement[]> {
+  const q = query(adsRef, orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Advertisement));
+}
+
+export async function getActiveAdsByCategory(category: AdCategory): Promise<Advertisement[]> {
+  const now = new Date().toISOString();
+  const q = query(
+    adsRef,
+    where("category", "==", category),
+    where("status", "==", "active"),
+    where("isActive", "==", true)
+  );
+  const snap = await getDocs(q);
+  const ads = snap.docs.map(d => ({ id: d.id, ...d.data() } as Advertisement));
+  // Filter by date range on client/server since Firestore composite queries on inequality are tricky
+  return ads.filter(ad => ad.startDate <= now && ad.endDate >= now);
+}
+
+export async function createAd(data: Omit<Advertisement, "id" | "impressions" | "clicks" | "createdAt" | "updatedAt">): Promise<string> {
+  const docRef = await addDoc(adsRef, {
+    ...data,
+    impressions: 0,
+    clicks: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+  return docRef.id;
+}
+
+export async function updateAd(id: string, data: Partial<Advertisement>): Promise<void> {
+  const docRef = doc(db, "ads", id);
+  await updateDoc(docRef, {
+    ...data,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function deleteAd(id: string): Promise<void> {
+  const docRef = doc(db, "ads", id);
+  await deleteDoc(docRef);
+}
+
+export async function incrementAdImpression(id: string): Promise<void> {
+  const docRef = doc(db, "ads", id);
+  try {
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const current = snap.data().impressions || 0;
+      await updateDoc(docRef, { impressions: current + 1 });
+    }
+  } catch (err) {
+    console.warn("Failed to increment ad impression", err);
+  }
+}
+
+export async function incrementAdClick(id: string): Promise<void> {
+  const docRef = doc(db, "ads", id);
+  try {
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const current = snap.data().clicks || 0;
+      await updateDoc(docRef, { clicks: current + 1 });
+    }
+  } catch (err) {
+    console.warn("Failed to increment ad click", err);
   }
 }

@@ -136,7 +136,7 @@ export default function HomePage() {
               <LatestNews articles={latestNewsArticles} />
             )}
 
-            <AdBanner variant="leaderboard" />
+            <AdBanner category="homepage_banner" />
 
             {/* 6. Category News */}
             {articles.length > 0 && (
