@@ -45,7 +45,7 @@ service cloud.firestore {
     }
 
     // 4. Advertisements
-    match /advertisements/{adId} {
+    match /ads/{adId} {
       allow read: if true;
       allow write: if isAdmin();
     }
