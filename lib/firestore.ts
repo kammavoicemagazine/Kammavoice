@@ -782,9 +782,23 @@ export async function getAllActiveAds(): Promise<Advertisement[]> {
 export async function getAdBySlug(slug: string): Promise<Advertisement | null> {
   const q = query(adsRef, where("slug", "==", slug));
   const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const doc = snap.docs[0];
-  return { id: doc.id, ...doc.data() } as Advertisement;
+  if (!snap.empty) {
+    const docSnap = snap.docs[0];
+    return { id: docSnap.id, ...docSnap.data() } as Advertisement;
+  }
+  
+  // Fallback: try by ID if slug is not found
+  try {
+    const docRef = doc(db, "ads", slug);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Advertisement;
+    }
+  } catch (err) {
+    // ignore
+  }
+
+  return null;
 }
 export async function createAd(data: Omit<Advertisement, "id" | "impressions" | "clicks" | "createdAt" | "updatedAt">): Promise<string> {
   const docRef = await addDoc(adsRef, {

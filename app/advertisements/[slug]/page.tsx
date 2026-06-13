@@ -4,7 +4,7 @@ import { getAdBySlug, getAllActiveAds } from "@/lib/firestore";
 import AdvertisementClient from "./AdvertisementClient";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export const revalidate = 3600;
@@ -17,7 +17,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = params;
+  const { slug } = await params;
   const ad = await getAdBySlug(slug);
 
   if (!ad) {
@@ -61,7 +61,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function AdvertisementPage({ params }: Props) {
-  const { slug } = params;
+  const { slug } = await params;
   const ad = await getAdBySlug(slug);
 
   if (!ad) {
