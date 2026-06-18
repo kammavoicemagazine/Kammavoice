@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, BookOpen, Newspaper, Film, Menu, X, Settings, Info, ShieldAlert } from "lucide-react";
+import { Home, BookOpen, Megaphone, Phone, Menu, X, Settings, Info, ShieldAlert, Mail, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { isNativePlatform } from "@/lib/capacitor-init";
 import { triggerLightTap } from "@/lib/haptic-utils";
@@ -11,8 +11,8 @@ import { motionCurves, motionSprings, pressTap, useMotionProfile } from "@/lib/m
 const NAV_ITEMS = [
   { path: "/", label: "Home", labelTe: "హోమ్", icon: Home },
   { path: "/magazine", label: "Magazines", labelTe: "మ్యాగజైన్", icon: BookOpen },
-  { path: "/news", label: "News", labelTe: "వార్తలు", icon: Newspaper },
-  { path: "/videos", label: "Reels", labelTe: "రీల్స్", icon: Film },
+  { path: "/advertisements", label: "Advertisements", labelTe: "ప్రకటనలు", icon: Megaphone },
+  { path: "contact", label: "Contact", labelTe: "సంప్రదించండి", icon: Phone },
   { path: "menu", label: "Menu", labelTe: "మెనూ", icon: Menu },
 ];
 
@@ -21,8 +21,10 @@ export default function BottomNavigation() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("/");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const motionProfile = useMotionProfile();
+
   useEffect(() => {
     // Show on native platform or mobile viewports
     const checkViewport = () => {
@@ -40,10 +42,8 @@ export default function BottomNavigation() {
       setActiveTab("/");
     } else if (pathname.startsWith("/magazine")) {
       setActiveTab("/magazine");
-    } else if (pathname.startsWith("/news")) {
-      setActiveTab("/news");
-    } else if (pathname.startsWith("/videos")) {
-      setActiveTab("/videos");
+    } else if (pathname.startsWith("/advertisements")) {
+      setActiveTab("/advertisements");
     } else {
       setActiveTab("");
     }
@@ -53,8 +53,13 @@ export default function BottomNavigation() {
     triggerLightTap();
     if (path === "menu") {
       setIsMenuOpen(true);
+      setIsContactOpen(false);
+    } else if (path === "contact") {
+      setIsContactOpen(true);
+      setIsMenuOpen(false);
     } else {
       setIsMenuOpen(false);
+      setIsContactOpen(false);
       router.push(path);
     }
   };
@@ -76,7 +81,7 @@ export default function BottomNavigation() {
           <div className="h-16 flex items-center justify-between relative">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
-              const isActive = activeTab === item.path || (item.path === "menu" && isMenuOpen);
+              const isActive = activeTab === item.path || (item.path === "menu" && isMenuOpen) || (item.path === "contact" && isContactOpen);
               
               return (
                 <motion.button
@@ -111,7 +116,7 @@ export default function BottomNavigation() {
                     <Icon className="relative w-5 h-5 stroke-[2]" />
                   </motion.div>
                   
-                  <span className={`text-[10px] mt-0.5 font-semibold z-10 transition-colors duration-200 ${
+                  <span className={`text-[9px] sm:text-[10px] mt-0.5 font-semibold z-10 transition-colors duration-200 ${
                     isActive ? "text-gold font-bold" : "text-[#9A9A9A] group-hover:text-white"
                   }`}>
                     {item.label}
@@ -122,6 +127,97 @@ export default function BottomNavigation() {
           </div>
         </motion.div>
       </div>
+
+      {/* Persistent Contact Bottom Sheet */}
+      <AnimatePresence>
+        {isContactOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsContactOpen(false)}
+              className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm"
+            />
+            
+            {/* Drawer */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={motionSprings.modal}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-[#141414]/96 backdrop-blur-xl border-t border-white/[0.08] rounded-t-[28px] max-w-lg mx-auto pb-safe-bottom overflow-hidden"
+              style={{ boxShadow: "0 -1px 0 rgba(255,255,255,0.04) inset" }}
+            >
+              {/* Drag Handle indicator */}
+              <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto my-3.5" />
+              
+              <div className="flex items-center justify-between px-6 pb-4 border-b border-white/[0.06]">
+                <div className="flex flex-col">
+                  <span className="text-gold font-extrabold font-[family-name:var(--font-playfair)] tracking-wider text-lg">
+                    CONTACT US
+                  </span>
+                  <span className="text-[10px] text-gray-500 tracking-widest uppercase font-bold">
+                    సంప్రదించండి
+                  </span>
+                </div>
+                <motion.button
+                  onClick={() => setIsContactOpen(false)}
+                  whileTap={pressTap}
+                  className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </motion.button>
+              </div>
+
+              {/* Bottom Sheet Contact Grid */}
+              <div className="grid grid-cols-3 gap-3 p-6 bg-black/20">
+                {/* WhatsApp */}
+                <a
+                  href="https://wa.me/918247330933?text=Hello%20Kamma%20Voice%2C%20I%20have%20an%20enquiry."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => { triggerLightTap(); setIsContactOpen(false); }}
+                  className="flex flex-col items-center justify-center p-4 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] rounded-2xl transition-all cursor-pointer group ripple-touch text-center"
+                >
+                  <MessageSquare className="w-6 h-6 text-[#25D366] group-hover:scale-110 transition-transform duration-300" />
+                  <span className="text-xs font-semibold text-gray-200 mt-2">WhatsApp</span>
+                  <span className="text-[9px] text-gray-500 mt-0.5">Chat Support</span>
+                </a>
+
+                {/* Call */}
+                <a
+                  href="tel:+918247330933"
+                  onClick={() => { triggerLightTap(); setIsContactOpen(false); }}
+                  className="flex flex-col items-center justify-center p-4 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] rounded-2xl transition-all cursor-pointer group ripple-touch text-center"
+                >
+                  <Phone className="w-6 h-6 text-gold group-hover:scale-110 transition-transform duration-300" />
+                  <span className="text-xs font-semibold text-gray-200 mt-2">Call Direct</span>
+                  <span className="text-[9px] text-gray-500 mt-0.5">918247330933</span>
+                </a>
+
+                {/* Email */}
+                <a
+                  href="mailto:contact@kammavoice.com"
+                  onClick={() => { triggerLightTap(); setIsContactOpen(false); }}
+                  className="flex flex-col items-center justify-center p-4 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] rounded-2xl transition-all cursor-pointer group ripple-touch text-center"
+                >
+                  <Mail className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
+                  <span className="text-xs font-semibold text-gray-200 mt-2">Email Us</span>
+                  <span className="text-[9px] text-gray-500 mt-0.5">Mail Support</span>
+                </a>
+              </div>
+
+              <div className="p-4 bg-[#141414] border-t border-white/[0.05] text-center">
+                <p className="text-[10px] text-gray-500 font-semibold tracking-wider">
+                  Kamma Voice v1.1.0 — Telugu Community Media
+                </p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Persistent Menu Bottom Sheet */}
       <AnimatePresence>
@@ -166,10 +262,8 @@ export default function BottomNavigation() {
                 </motion.button>
               </div>
 
-              {/* Bottom Sheet Navigation Grid (Modified to 3 columns, hiding downloads) */}
+              {/* Bottom Sheet Navigation Grid */}
               <div className="grid grid-cols-3 gap-3 p-6 bg-black/20">
-
-
                 {/* About Us */}
                 <motion.button
                   onClick={() => { triggerLightTap(); setIsMenuOpen(false); router.push("/about"); }}
