@@ -131,6 +131,14 @@ export default function AdvertisementClient({ ad }: Props) {
                     Call Now
                   </Link>
                 )}
+
+                <button
+                  onClick={handleWhatsAppShare}
+                  className="flex items-center justify-center gap-2 py-3 px-4 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 border border-[#25D366]/30 font-semibold rounded-xl transition-colors shadow-sm cursor-pointer"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  Share on WhatsApp
+                </button>
               </div>
             </div>
           </div>

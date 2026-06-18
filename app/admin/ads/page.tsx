@@ -67,6 +67,7 @@ export default function AdsAdminPage() {
               <tr className="border-b bg-muted/50">
                 <th className="p-4 font-medium">Title & Sponsor</th>
                 <th className="p-4 font-medium">Category</th>
+                <th className="p-4 font-medium text-right">Amount Paid</th>
                 <th className="p-4 font-medium">Status</th>
                 <th className="p-4 font-medium">Dates</th>
                 <th className="p-4 font-medium text-right">Impressions</th>
@@ -78,7 +79,7 @@ export default function AdsAdminPage() {
             <tbody>
               {ads.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     No advertisements found.
                   </td>
                 </tr>
@@ -93,6 +94,9 @@ export default function AdsAdminPage() {
                       <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs">
                         {ad.category.replace("_", " ")}
                       </span>
+                    </td>
+                    <td className="p-4 text-right font-medium">
+                      ${(ad.amountPaid || 0).toLocaleString()}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">

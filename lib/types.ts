@@ -80,7 +80,7 @@ export interface Video {
   createdAt: string;
 }
 
-export type AdCategory = "homepage_banner" | "magazine_banner" | "article_banner" | "half_page" | "full_page";
+export type AdCategory = "front_cover" | "front_inner_cover" | "back_inner_cover" | "back_cover" | "full_page" | "half_page";
 export type AdStatus = "active" | "scheduled" | "expired";
 
 /** Advertisement */

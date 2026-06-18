@@ -756,27 +756,46 @@ export async function adminGetAds(): Promise<Advertisement[]> {
 
 export async function getActiveAdsByCategory(category: AdCategory): Promise<Advertisement[]> {
   const now = new Date().toISOString();
+  console.log(`[Firestore Debug] getActiveAdsByCategory category: "${category}", now: "${now}"`);
+  
   const q = query(
     adsRef,
     where("category", "==", category),
-    where("status", "==", "active"),
+    where("status", "in", ["active", "scheduled"]),
     where("isActive", "==", true)
   );
   const snap = await getDocs(q);
   const ads = snap.docs.map(d => ({ id: d.id, ...d.data() } as Advertisement));
-  // Filter by date range on client/server since Firestore composite queries on inequality are tricky
-  return ads.filter(ad => ad.startDate <= now && ad.endDate >= now);
+  
+  console.log(`[Firestore Debug] getActiveAdsByCategory raw retrieved ads: ${ads.length}`);
+  ads.forEach(ad => {
+    console.log(`[Firestore Debug] Ad ID: ${ad.id}, Title: "${ad.title}", Status: "${ad.status}", isActive: ${ad.isActive}, startDate: "${ad.startDate}", endDate: "${ad.endDate}", startDate <= now: ${ad.startDate <= now}, endDate >= now: ${ad.endDate >= now}`);
+  });
+
+  const filtered = ads.filter(ad => ad.startDate <= now && ad.endDate >= now);
+  console.log(`[Firestore Debug] getActiveAdsByCategory final active count: ${filtered.length}`);
+  return filtered;
 }
 export async function getAllActiveAds(): Promise<Advertisement[]> {
   const now = new Date().toISOString();
+  console.log(`[Firestore Debug] getAllActiveAds, now: "${now}"`);
+  
   const q = query(
     adsRef,
-    where("status", "==", "active"),
+    where("status", "in", ["active", "scheduled"]),
     where("isActive", "==", true)
   );
   const snap = await getDocs(q);
   const ads = snap.docs.map(d => ({ id: d.id, ...d.data() } as Advertisement));
-  return ads.filter(ad => ad.startDate <= now && ad.endDate >= now).sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+  
+  console.log(`[Firestore Debug] getAllActiveAds raw retrieved ads: ${ads.length}`);
+  ads.forEach(ad => {
+    console.log(`[Firestore Debug] Ad ID: ${ad.id}, Title: "${ad.title}", Status: "${ad.status}", isActive: ${ad.isActive}, startDate: "${ad.startDate}", endDate: "${ad.endDate}", startDate <= now: ${ad.startDate <= now}, endDate >= now: ${ad.endDate >= now}`);
+  });
+
+  const filtered = ads.filter(ad => ad.startDate <= now && ad.endDate >= now);
+  console.log(`[Firestore Debug] getAllActiveAds final active count: ${filtered.length}`);
+  return filtered.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
 }
 
 export async function getAdBySlug(slug: string): Promise<Advertisement | null> {

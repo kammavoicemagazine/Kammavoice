@@ -270,7 +270,7 @@ export default function ArticlePage() {
           )}
         </motion.div>
 
-        <AdBanner category="article_banner" className="my-10" />
+        <AdBanner category="half_page" className="my-10" />
 
         {/* Related Articles */}
         {related.length > 0 && (

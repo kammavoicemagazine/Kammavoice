@@ -22,7 +22,7 @@ export default function AdForm({ mode, id }: Props) {
     title: "",
     imageUrl: "",
     linkUrl: "",
-    category: "homepage_banner",
+    category: "front_cover",
     status: "scheduled",
     sponsorName: "",
     contactNumber: "",
@@ -243,15 +243,16 @@ export default function AdForm({ mode, id }: Props) {
               <div>
                 <label className="block text-sm font-medium mb-1">Placement Category</label>
                 <select
-                  value={formData.category || "homepage_banner"}
+                  value={formData.category || "front_cover"}
                   onChange={e => setFormData(prev => ({ ...prev, category: e.target.value as AdCategory }))}
                   className="w-full p-2 border rounded-md bg-background"
                 >
-                  <option value="homepage_banner">Homepage Banner</option>
-                  <option value="magazine_banner">Magazine Banner (Reader Bottom)</option>
-                  <option value="article_banner">Article Banner</option>
-                  <option value="half_page">Half Page Ad</option>
-                  <option value="full_page">Full Page Ad</option>
+                  <option value="front_cover">Front Cover</option>
+                  <option value="front_inner_cover">Front Inner Cover</option>
+                  <option value="back_inner_cover">Back Inner Cover</option>
+                  <option value="back_cover">Back Cover</option>
+                  <option value="full_page">Full Page</option>
+                  <option value="half_page">Half Page</option>
                 </select>
               </div>
 

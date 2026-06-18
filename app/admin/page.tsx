@@ -25,10 +25,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAllArticles, getAllMagazines, seedCategories } from "@/lib/firestore";
+import { getAllArticles, getAllMagazines, seedCategories, adminGetAds } from "@/lib/firestore";
 import { formatDate } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
-import type { Article, Magazine } from "@/lib/types";
+import type { Article, Magazine, Advertisement } from "@/lib/types";
 
 interface ActivityItem {
   id: string;
@@ -52,6 +52,7 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const [articles, setArticles] = useState<Article[]>([]);
   const [magazines, setMagazines] = useState<Magazine[]>([]);
+  const [ads, setAds] = useState<Advertisement[]>([]);
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
   const [activities, setActivities] = useState<ActivityItem[]>(INITIAL_ACTIVITIES);
@@ -68,15 +69,17 @@ export default function AdminDashboard() {
 
     startTransition(async () => {
       try {
-        const [arts, mags] = await Promise.all([
+        const [arts, mags, adsData] = await Promise.all([
           getAllArticles(),
           getAllMagazines(),
+          adminGetAds(),
         ]);
 
         if (!isMounted) return;
 
         setArticles(arts);
         setMagazines(mags);
+        setAds(adsData);
 
         // Add dynamic activity if articles exist
         if (arts.length > 0 && isMounted) {
@@ -123,6 +126,47 @@ export default function AdminDashboard() {
   const totalReads = totalArticleViews + totalMagViews + 48250; // Add baseline simulated enterprise views
   const activeUsers = Math.floor(Math.random() * 400) + 850;
   const estimatedAiCost = ((magazines.length * 42 * 0.0015) + 12.45).toFixed(2);
+
+  // Group and calculate advertisement statistics by category
+  const categoriesList = [
+    "front_cover",
+    "front_inner_cover",
+    "back_inner_cover",
+    "back_cover",
+    "full_page",
+    "half_page"
+  ];
+
+  const categoryLabelsMap: Record<string, string> = {
+    front_cover: "Front Cover",
+    front_inner_cover: "Front Inner Cover",
+    back_inner_cover: "Back Inner Cover",
+    back_cover: "Back Cover",
+    full_page: "Full Page",
+    half_page: "Half Page"
+  };
+
+  const adsStatsByCategory = categoriesList.map(cat => {
+    const catAds = ads.filter(ad => ad.category === cat);
+    const totalCount = catAds.length;
+    const now = new Date().toISOString();
+    const activeCount = catAds.filter(ad => ad.isActive && (ad.status === "active" || ad.status === "scheduled") && ad.startDate <= now && ad.endDate >= now).length;
+    const totalImpressions = catAds.reduce((sum, ad) => sum + (ad.impressions || 0), 0);
+    const totalClicks = catAds.reduce((sum, ad) => sum + (ad.clicks || 0), 0);
+    const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : "0.00";
+    const totalRevenue = catAds.reduce((sum, ad) => sum + (ad.amountPaid || 0), 0);
+
+    return {
+      category: cat,
+      label: categoryLabelsMap[cat] || cat,
+      totalCount,
+      activeCount,
+      totalImpressions,
+      totalClicks,
+      ctr,
+      totalRevenue
+    };
+  });
 
   const STATS = [
     { label: "Total Visitors", value: "142.8K", sub: "+18.2% from last month", icon: Users, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
@@ -331,6 +375,74 @@ export default function AdminDashboard() {
             </Link>
           </div>
         </div>
+      </div>
+
+      {/* Advertisement Analytics Section */}
+      <div className="rounded-2xl bg-[#141414] border border-border-subtle shadow-xl overflow-hidden flex flex-col p-6 space-y-6">
+        <div>
+          <h2 className="text-xl font-bold text-foreground font-[family-name:var(--font-playfair)]">
+            Advertisement Campaigns by Category
+          </h2>
+          <p className="text-xs text-muted mt-0.5">Real-time magazine placement performance and revenue</p>
+        </div>
+
+        {loading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-xl bg-[#1A1A1A]" />)}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-border-subtle bg-[#1A1A1A]/50">
+                  <th className="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-muted">Placement Category</th>
+                  <th className="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-muted text-center">Active / Total</th>
+                  <th className="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-muted text-right">Impressions</th>
+                  <th className="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-muted text-right">Clicks</th>
+                  <th className="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-muted text-right">Avg CTR</th>
+                  <th className="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-muted text-right">Revenue</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-subtle/50">
+                {adsStatsByCategory.map((stat) => (
+                  <tr key={stat.category} className="hover:bg-surface-hover transition-colors group">
+                    <td className="px-6 py-4 text-sm font-semibold text-foreground">
+                      <span className="flex items-center gap-2">
+                        {stat.category.includes("cover") && (
+                          <span className="px-1.5 py-0.5 rounded bg-gold/10 text-gold border border-gold/30 text-[9px] uppercase font-bold">
+                            Cover
+                          </span>
+                        )}
+                        {stat.label}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-center">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                        stat.activeCount > 0
+                          ? "bg-green-500/10 text-green-400 border-green-500/20"
+                          : "bg-surface text-muted border-border-subtle"
+                      }`}>
+                        {stat.activeCount} / {stat.totalCount}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-right font-medium text-muted font-mono">
+                      {stat.totalImpressions.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-right font-medium text-muted font-mono">
+                      {stat.totalClicks.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-right font-medium text-gold font-mono">
+                      {stat.ctr}%
+                    </td>
+                    <td className="px-6 py-4 text-sm text-right font-semibold text-emerald-400 font-mono">
+                      ${stat.totalRevenue.toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

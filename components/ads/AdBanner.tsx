@@ -13,7 +13,7 @@ interface AdBannerProps {
 }
 
 export default function AdBanner({
-  category = "homepage_banner",
+  category = "front_cover",
   variant,
   className = "",
 }: AdBannerProps) {
@@ -69,14 +69,15 @@ export default function AdBanner({
   };
 
   const heights: Record<string, string> = {
-    homepage_banner: "h-32 md:h-48",
+    front_cover: "h-48 md:h-[400px]",
+    front_inner_cover: "h-40 md:h-[350px]",
+    back_inner_cover: "h-40 md:h-[350px]",
+    back_cover: "h-48 md:h-[400px]",
+    full_page: "h-[450px] md:h-[600px]",
+    half_page: "h-[250px] md:h-[300px]",
     leaderboard: "h-20 md:h-24",
     sidebar: "h-64",
-    inline: "h-28",
-    magazine_banner: "h-24 md:h-32",
-    article_banner: "h-24 md:h-32",
-    half_page: "h-[300px]",
-    full_page: "h-[600px]"
+    inline: "h-28"
   };
 
   const adHeightClass = heights[category] || heights[variant || "leaderboard"];

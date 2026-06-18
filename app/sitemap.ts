@@ -36,8 +36,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     // Dynamic Advertisement Routes
     const ads = await getAllActiveAds();
-    const adRoutes: MetadataRoute.Sitemap = ads.filter(ad => ad.slug).map((ad) => ({
-      url: `${BASE_URL}/advertisements/${ad.slug}`,
+    const adRoutes: MetadataRoute.Sitemap = ads.map((ad) => ({
+      url: `${BASE_URL}/advertisements/${ad.slug || ad.id}`,
       lastModified: new Date(ad.updatedAt || ad.createdAt || new Date()),
       changeFrequency: "weekly",
       priority: 0.6,
