@@ -571,14 +571,30 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
     });
   }, []);
 
-  // ── Keyboard Navigation ──
+  // ── Navigation ──
   const flipPrev = useCallback(() => {
-    flipBookRef.current?.pageFlip()?.flipPrev();
-  }, []);
+    if (usePortraitMode) {
+      setCurrentPage((prev) => {
+        const next = Math.max(0, prev - 1);
+        localStorage.setItem(`magazine-page-${title}`, next.toString());
+        return next;
+      });
+    } else {
+      flipBookRef.current?.pageFlip()?.flipPrev();
+    }
+  }, [usePortraitMode, title]);
 
   const flipNext = useCallback(() => {
-    flipBookRef.current?.pageFlip()?.flipNext();
-  }, []);
+    if (usePortraitMode) {
+      setCurrentPage((prev) => {
+        const next = Math.min(numPages - 1, prev + 1);
+        localStorage.setItem(`magazine-page-${title}`, next.toString());
+        return next;
+      });
+    } else {
+      flipBookRef.current?.pageFlip()?.flipNext();
+    }
+  }, [usePortraitMode, numPages, title]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -696,7 +712,7 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
     if (zoom > 1.0) {
       changeZoom(1.0);
     } else {
-      changeZoom(1.8);
+      changeZoom(isMobile ? 1.35 : 1.6);
     }
   };
 
@@ -705,7 +721,12 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
     e.preventDefault();
     const val = parseInt(pageInputVal, 10);
     if (!isNaN(val) && val >= 1 && val <= numPages) {
-      flipBookRef.current?.pageFlip()?.flip(val - 1);
+      if (usePortraitMode) {
+        setCurrentPage(val - 1);
+        localStorage.setItem(`magazine-page-${title}`, (val - 1).toString());
+      } else {
+        flipBookRef.current?.pageFlip()?.flip(val - 1);
+      }
     } else {
       setPageInputVal((currentPage + 1).toString());
     }
@@ -727,13 +748,13 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
     return { width: baseWidth, height: baseHeight };
   }, [pageRatio]);
 
-  // Compute CSS scaling factor (Occupy 94% of workspace viewport on desktop, 96% on mobile)
+  // Compute CSS scaling factor (Occupy 94% of workspace viewport on desktop, full width on mobile)
   const fitScale = useMemo(() => {
     if (containerSize.w === 0 || containerSize.h === 0) return 1.0;
 
-    // Mobile: explicitly deduct 120px height, and 120px width (60px side margins) to prevent arrow overlapping
-    const targetW = isMobile ? containerSize.w - 120 : containerSize.w * 0.94;
-    const targetH = isMobile ? containerSize.h - 120 : containerSize.h * 0.94;
+    // Mobile: Use 98% container width (6px padding) and deduct controls height (~80px) to maximize page size
+    const targetW = isMobile ? Math.max(280, containerSize.w - 12) : containerSize.w * 0.94;
+    const targetH = isMobile ? Math.max(350, containerSize.h - 85) : containerSize.h * 0.94;
     const bookWidth = bookDimensions.width * (usePortraitMode ? 1 : 2);
 
     if (fitMode === "width") {
@@ -852,18 +873,17 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
           ref={wrapperRef}
           className="overflow-auto overscroll-none relative bg-transparent w-full h-full flex justify-center items-center"
         >
-          {/* Side Nav Buttons (Visible permanently on mobile, glassmorphism) */}
+          {/* Side Nav Buttons (Sleek transparent floating controls) */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               flipPrev();
             }}
             disabled={currentPage <= 0}
-            className="fixed sm:absolute left-[12px] sm:left-6 top-1/2 -translate-y-1/2 z-[100] text-white/70 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer bg-white/10 hover:bg-white/20 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/10 sm:border-transparent flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.5)] sm:shadow-none sm:filter sm:drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]"
-            style={{ width: "48px", height: "48px", borderRadius: "50%" }}
+            className="fixed sm:absolute left-1 sm:left-6 top-1/2 -translate-y-1/2 z-[100] text-white/80 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer bg-black/40 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/15 sm:border-transparent flex items-center justify-center shadow-lg sm:shadow-none w-9 h-9 sm:w-14 sm:h-14 rounded-full"
             aria-label="Previous Page"
           >
-            <ChevronLeft className="w-8 h-8 sm:w-14 sm:h-14 stroke-[2]" />
+            <ChevronLeft className="w-5 h-5 sm:w-12 sm:h-12 stroke-[2.5]" />
           </button>
           <button
             onClick={(e) => {
@@ -871,11 +891,10 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
               flipNext();
             }}
             disabled={currentPage >= numPages - 1}
-            className="fixed sm:absolute right-[12px] sm:right-6 top-1/2 -translate-y-1/2 z-[100] text-white/70 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer bg-white/10 hover:bg-white/20 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/10 sm:border-transparent flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.5)] sm:shadow-none sm:filter sm:drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]"
-            style={{ width: "48px", height: "48px", borderRadius: "50%" }}
+            className="fixed sm:absolute right-1 sm:right-6 top-1/2 -translate-y-1/2 z-[100] text-white/80 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none cursor-pointer bg-black/40 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/15 sm:border-transparent flex items-center justify-center shadow-lg sm:shadow-none w-9 h-9 sm:w-14 sm:h-14 rounded-full"
             aria-label="Next Page"
           >
-            <ChevronRight className="w-8 h-8 sm:w-14 sm:h-14 stroke-[2]" />
+            <ChevronRight className="w-5 h-5 sm:w-12 sm:h-12 stroke-[2.5]" />
           </button>
 
           {/* Centered Scroll Wrapper using TransformWrapper for pinch-zoom */}
@@ -898,63 +917,78 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
+                  margin: "0 auto",
                 }}
               >
-                <div
-                  style={{
-                    width: `${wrapperWidth}px`,
-                    height: `${wrapperHeight}px`,
-                    margin: "0 auto",
-                    position: "relative",
-                  }}
-                >
+                {usePortraitMode ? (
+                  <div
+                    className="relative shadow-2xl rounded overflow-hidden mx-auto flex items-center justify-center"
+                    style={{
+                      width: `${wrapperWidth}px`,
+                      height: `${wrapperHeight}px`,
+                      margin: "0 auto",
+                    }}
+                  >
+                    <FlipPage
+                      key={currentPage}
+                      pdfDoc={pdfDoc}
+                      lowResSrc={lowResPages[currentPage]}
+                      pageNumber={currentPage + 1}
+                      totalPages={numPages}
+                      usePortraitMode={true}
+                      isNearby={true}
+                      scale={isMobile ? 2.5 : 3.0}
+                      zoom={debouncedZoom}
+                    />
+                  </div>
+                ) : (
                   <div
                     style={{
-                      width: `${bookDimensions.width * (usePortraitMode ? 1 : 2)}px`,
+                      width: `${bookDimensions.width * 2}px`,
                       height: `${bookDimensions.height}px`,
                       transform: `scale(${finalScale})`,
-                      transformOrigin: "top left",
-                      // FlowPaper style drop shadows
+                      transformOrigin: "top center",
+                      margin: "0 auto",
                       filter:
                         "drop-shadow(0 25px 35px rgba(0, 0, 0, 0.55)) drop-shadow(0 12px 18px rgba(0, 0, 0, 0.45))",
                     }}
                   >
-                  {/* @ts-ignore */}
-                  <HTMLFlipBook
-                    ref={flipBookRef}
-                    width={bookDimensions.width}
-                    height={bookDimensions.height}
-                    size="fixed"
-                    showCover={true}
-                    drawShadow={!isMobile}
-                    flippingTime={700}
-                    usePortrait={usePortraitMode}
-                    startPage={currentPage}
-                    maxShadowOpacity={0.5}
-                    mobileScrollSupport={false}
-                    clickEventForward={true}
-                    swipeDistance={zoom > 1.0 ? 99999 : 30}
-                    showPageCorners={!isMobile}
-                    onFlip={handleFlip}
-                    className="flipbook-container"
-                    style={{}}
-                  >
-                    {Array.from({ length: numPages }, (_, i) => (
-                      <FlipPage
-                        key={i}
-                        pdfDoc={pdfDoc}
-                        lowResSrc={lowResPages[i]}
-                        pageNumber={i + 1}
-                        totalPages={numPages}
-                        usePortraitMode={usePortraitMode}
-                        isNearby={isPageNearby(i + 1)}
-                        scale={isMobile ? 2.5 : 3.0}
-                        zoom={debouncedZoom}
-                      />
-                    ))}
-                  </HTMLFlipBook>
+                    {/* @ts-ignore */}
+                    <HTMLFlipBook
+                      ref={flipBookRef}
+                      width={bookDimensions.width}
+                      height={bookDimensions.height}
+                      size="fixed"
+                      showCover={true}
+                      drawShadow={!isMobile}
+                      flippingTime={700}
+                      usePortrait={false}
+                      startPage={currentPage}
+                      maxShadowOpacity={0.5}
+                      mobileScrollSupport={false}
+                      clickEventForward={true}
+                      swipeDistance={zoom > 1.0 ? 99999 : 30}
+                      showPageCorners={!isMobile}
+                      onFlip={handleFlip}
+                      className="flipbook-container mx-auto"
+                      style={{ margin: "0 auto" }}
+                    >
+                      {Array.from({ length: numPages }, (_, i) => (
+                        <FlipPage
+                          key={i}
+                          pdfDoc={pdfDoc}
+                          lowResSrc={lowResPages[i]}
+                          pageNumber={i + 1}
+                          totalPages={numPages}
+                          usePortraitMode={false}
+                          isNearby={isPageNearby(i + 1)}
+                          scale={3.0}
+                          zoom={debouncedZoom}
+                        />
+                      ))}
+                    </HTMLFlipBook>
                   </div>
-                </div>
+                )}
               </div>
             </TransformComponent>
           </TransformWrapper>

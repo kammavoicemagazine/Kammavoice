@@ -234,9 +234,9 @@ export default function MagazineForm({ magazine, mode }: MagazineFormProps) {
       }
 
       router.push("/admin/magazines");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error(mode === "create" ? "Failed to publish magazine" : "Failed to update magazine");
+      toast.error(err?.message ? `Failed: ${err.message}` : (mode === "create" ? "Failed to publish magazine" : "Failed to update magazine"));
     } finally {
       setIsSubmitting(false);
     }

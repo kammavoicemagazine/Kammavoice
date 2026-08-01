@@ -1,68 +1,97 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // --- Helper Functions ---
-    
-    // Check if the user is authenticated
+    // Helper Functions
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    // Check if the user is an admin
     function isAdmin() {
-      return isAuthenticated();
+      return request.auth != null;
     }
 
-    // --- Collections ---
-
-    // 1. Articles
+    // Articles
     match /articles/{articleId} {
-      // Public can read if published
       allow read: if resource.data.isPublished == true || isAdmin();
-      // Only authenticated admins can write (server-side Admin SDK bypasses this)
       allow write: if isAdmin();
     }
 
-    // 2. Magazines
+    // Magazines
     match /magazines/{magazineId} {
-      // Public can read if published
       allow read: if resource.data.isPublished == true || isAdmin();
-      // Only admins can write
       allow write: if isAdmin();
-
-      // Subcollection: pages (for multilingual AI translations)
       match /pages/{pageNumber} {
-        allow read: if true; // Public can read translations
-        allow write: if isAdmin(); // Only admins can write translations
+        allow read: if true;
+        allow write: if isAdmin();
       }
     }
 
-    // 3. Categories
+    // Categories
     match /categories/{categoryId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 4. Advertisements
+    // Advertisements
     match /ads/{adId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 5. Media
+    // Media
     match /media/{imageId} {
       allow read: if true;
       allow write: if isAdmin();
     }
-    
-    // 6. Global Configuration / Metadata
+
+    // Config
     match /config/{configId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Default deny for everything else
+    // Mobile App CMS Collections (app-prefixed)
+    match /app_magazines/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /app_reels/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /app_ads/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /app_sponsors/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Base collections used by mobile app
+    match /magazines/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /reels/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /ads/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /sponsors/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // App notifications
+    match /app_notifications/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Default deny
     match /{path=**} {
       allow read, write: if false;
     }

@@ -544,24 +544,60 @@ export async function getArticleBySlugSSR(slug: string): Promise<Article | null>
 export async function createMagazine(
   data: Omit<Magazine, "id" | "createdAt" | "updatedAt" | "viewCount">
 ): Promise<string> {
-  const docRef = await addDoc(magazinesRef, {
-    ...data,
-    viewCount: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  });
-  return docRef.id;
+  const cleanData = Object.fromEntries(
+    Object.entries(data).filter(([_, v]) => v !== undefined)
+  );
+
+  try {
+    const docRef = await addDoc(magazinesRef, {
+      ...cleanData,
+      viewCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    return docRef.id;
+  } catch (clientErr) {
+    console.warn("[createMagazine] Client SDK write failed, falling back to Server API endpoint:", clientErr);
+    const res = await fetch("/api/admin/magazines", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cleanData),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `Server API fallback failed with status ${res.status}`);
+    }
+    const result = await res.json();
+    return result.id;
+  }
 }
 
 export async function updateMagazine(
   id: string,
   data: Partial<Magazine>
 ): Promise<void> {
-  const docRef = doc(db, "magazines", id);
-  await updateDoc(docRef, {
-    ...data,
-    updatedAt: new Date().toISOString(),
-  });
+  const cleanData = Object.fromEntries(
+    Object.entries(data).filter(([_, v]) => v !== undefined)
+  );
+
+  try {
+    const docRef = doc(db, "magazines", id);
+    await updateDoc(docRef, {
+      ...cleanData,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (clientErr) {
+    console.warn("[updateMagazine] Client SDK update failed, falling back to Server API endpoint:", clientErr);
+    const res = await fetch("/api/admin/magazines", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, data: cleanData }),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `Server API fallback failed with status ${res.status}`);
+    }
+  }
 }
 
 export async function deleteMagazine(id: string): Promise<void> {
