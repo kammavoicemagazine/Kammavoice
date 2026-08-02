@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Inter, Playfair_Display, Noto_Serif_Telugu } from "next/font/google";
 import Providers from "@/components/providers/Providers";
+import CinematicOpening from "@/components/cinematic/CinematicOpening";
 import CapacitorProvider from "@/components/CapacitorProvider";
 import BottomNavigation from "@/components/layout/BottomNavigation";
 import DynamicIsland from "@/components/layout/DynamicIsland";
@@ -18,6 +19,13 @@ const inter = Inter({
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const notoTelugu = Noto_Serif_Telugu({
+  variable: "--font-noto-telugu",
+  subsets: ["telugu"],
+  weight: ["400", "600", "700", "800"],
   display: "swap",
 });
 
@@ -81,10 +89,11 @@ export default function RootLayout({
   return (
     <html
       lang="te"
-      className={`${inter.variable} ${playfair.variable} antialiased`}
+      className={`${inter.variable} ${playfair.variable} ${notoTelugu.variable} antialiased`}
     >
       <body className="min-h-screen flex flex-col bg-[#0A0A0A] text-[#FAFAFA] antialiased">
         <Providers>
+          <CinematicOpening />
           <CapacitorProvider>
             <DynamicIsland />
             <div className="flex-1 pb-24 lg:pb-0 flex flex-col">

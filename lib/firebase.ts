@@ -18,7 +18,7 @@ import {
   type QueryConstraint
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-
+import { getStorage } from "firebase/storage";
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -31,6 +31,10 @@ const firebaseConfig = {
 
 // Initialize Firebase (prevent re-initialization in development)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+
+// Initialize Auth and Storage instances
+export const auth = getAuth(app);
+export const storage = getStorage(app);
 
 let firestoreInstance;
 const globalWithFirestore = global as typeof globalThis & {
@@ -53,7 +57,6 @@ if (globalWithFirestore.firestoreInstance) {
 }
 
 export const db = firestoreInstance;
-export const auth = getAuth(app);
 
 export {
   collection,

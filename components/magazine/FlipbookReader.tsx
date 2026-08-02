@@ -748,13 +748,13 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
     return { width: baseWidth, height: baseHeight };
   }, [pageRatio]);
 
-  // Compute CSS scaling factor (Occupy 94% of workspace viewport on desktop, full width on mobile)
+  // Compute CSS scaling factor (Occupy available viewport area with proper padding)
   const fitScale = useMemo(() => {
     if (containerSize.w === 0 || containerSize.h === 0) return 1.0;
 
-    // Mobile: Use 98% container width (6px padding) and deduct controls height (~80px) to maximize page size
-    const targetW = isMobile ? Math.max(280, containerSize.w - 12) : containerSize.w * 0.94;
-    const targetH = isMobile ? Math.max(350, containerSize.h - 85) : containerSize.h * 0.94;
+    // Deduct top header (~56px) and bottom controls (~64px) space
+    const targetW = isMobile ? Math.max(280, containerSize.w - 16) : containerSize.w * 0.90;
+    const targetH = Math.max(300, containerSize.h - (isMobile ? 110 : 130));
     const bookWidth = bookDimensions.width * (usePortraitMode ? 1 : 2);
 
     if (fitMode === "width") {
@@ -866,6 +866,24 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
       onClick={handleTapZone}
       onDoubleClick={handleDoubleClick}
     >
+      {/* ── Top Header Navigation Bar ── */}
+      <div className="absolute top-0 left-0 right-0 z-[120] flex items-center justify-between px-4 sm:px-6 py-3 bg-black/60 backdrop-blur-md border-b border-white/10">
+        <Link
+          href="/magazine"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-gold hover:text-white transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Archive / మ్యాగజైన్</span>
+        </Link>
+        <h2 className="text-xs sm:text-sm font-bold text-white font-[family-name:var(--font-playfair)] truncate max-w-[180px] sm:max-w-md">
+          {title}
+        </h2>
+        <span className="text-[11px] font-mono text-[#CCCCCC] bg-white/10 px-2.5 py-1 rounded-full">
+          {pageDisplay}
+        </span>
+      </div>
+
       {/* ── Immersive Viewer Workspace ── */}
       <div className="w-full h-full flex justify-center items-center relative overflow-hidden bg-transparent">
         {/* ── 3. Centered Zoom-Scroll Content ── */}
@@ -947,7 +965,7 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
                       width: `${bookDimensions.width * 2}px`,
                       height: `${bookDimensions.height}px`,
                       transform: `scale(${finalScale})`,
-                      transformOrigin: "top center",
+                      transformOrigin: "center center",
                       margin: "0 auto",
                       filter:
                         "drop-shadow(0 25px 35px rgba(0, 0, 0, 0.55)) drop-shadow(0 12px 18px rgba(0, 0, 0, 0.45))",
@@ -998,7 +1016,7 @@ export default function FlipbookReader({ url, title }: FlipbookReaderProps) {
         <div
           onMouseEnter={() => setControlsHovered(true)}
           onMouseLeave={() => setControlsHovered(false)}
-          className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300
+          className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-[120] transition-all duration-300
             ${controlsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6 pointer-events-none"}
           `}
         >

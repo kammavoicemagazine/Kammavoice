@@ -173,6 +173,9 @@ export default function Footer() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted">
             <p>© {new Date().getFullYear()} Kamma Voice. All rights reserved.</p>
             <div className="flex gap-4">
+              <Link href="/?intro=true" className="hover:text-gold transition-colors text-gold/90 font-medium">
+                ✨ Replay Sacred Opening
+              </Link>
               <Link href="/privacy" className="hover:text-gold transition-colors">
                 Privacy Policy
               </Link>

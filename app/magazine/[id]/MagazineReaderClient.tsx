@@ -5,6 +5,9 @@ import { BookOpen } from "lucide-react";
 import dynamic from "next/dynamic";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
+import { incrementMagazineViewCount } from "@/lib/firestore";
+import type { Magazine } from "@/lib/types";
+import MagazineOpeningIntro from "@/components/cinematic/MagazineOpeningIntro";
 
 const FlipbookReader = dynamic(
   () => import("@/components/magazine/FlipbookReader"),
@@ -25,10 +28,6 @@ const FlipbookReader = dynamic(
   }
 );
 
-import { incrementMagazineViewCount } from "@/lib/firestore";
-import type { Magazine } from "@/lib/types";
-import AdBanner from "@/components/ads/AdBanner";
-
 export default function MagazineReaderClient({
   magazine,
 }: {
@@ -42,11 +41,12 @@ export default function MagazineReaderClient({
 
   return (
     <ErrorBoundary>
-      <div className="relative w-full h-[100dvh] overflow-hidden">
+      <div className="relative w-full h-[100dvh] overflow-hidden bg-[#0A0A0A]">
+        <MagazineOpeningIntro
+          title={magazine?.title}
+          coverUrl={magazine?.coverImageUrl}
+        />
         <FlipbookReader url={magazine.pdfUrl} title={magazine.title} magazineId={magazine.id} />
-        <div className="fixed bottom-0 left-0 right-0 z-[100] bg-background/80 backdrop-blur-md border-t border-border-subtle p-2 pointer-events-auto">
-          <AdBanner category="half_page" />
-        </div>
       </div>
     </ErrorBoundary>
   );
